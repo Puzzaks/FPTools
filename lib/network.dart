@@ -76,7 +76,7 @@ Future<Map> fastpanelCreateUser(id, ip, username, password, key) async {
   return jsonDecode(response.body);
 }
 
-Future fastpanelDomains(ip, key) async {
+Future fastpanelSites(ip, key) async {
   var params = {
     "filter[limit]": "20",
     "filter[type]": "all"
@@ -87,8 +87,21 @@ Future fastpanelDomains(ip, key) async {
   var endpoint = "$ip:8888";
   const method = "api/sites/list";
   final response = await http.get(
-    Uri.https(endpoint, method, params),
-    headers: headers
+      Uri.https(endpoint, method, params),
+      headers: headers
+  );
+  return jsonDecode(response.body);
+}
+
+Future fastpanelDomains(ip, site, key) async {
+  var headers = {
+    'Authorization': "Bearer $key",
+  };
+  var endpoint = "$ip:8888";
+  var method = "api/sites/$site/email/domains";
+  final response = await http.get(
+      Uri.https(endpoint, method),
+      headers: headers
   );
   return jsonDecode(response.body);
 }

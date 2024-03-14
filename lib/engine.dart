@@ -1,14 +1,13 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
-import 'package:flutter/material.dart';
+import 'package:encrypt/encrypt.dart';
+import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shared_preferences_windows/shared_preferences_windows.dart';
 import 'network.dart';
 
-class fastEngine with ChangeNotifier{
-  TextEditingController userSearch = TextEditingController(
+class fastEngine with material.ChangeNotifier{
+  material.TextEditingController userSearch = material.TextEditingController(
       text: ""
   );
   Map known = {};
@@ -19,24 +18,44 @@ class fastEngine with ChangeNotifier{
   List users = [];
   Map filtered = {};
   Map domains = {};
+  Map availdomains = {};
+  List domainNames = [];
   List userDomains = [];
   List creationDomains = [];
   String action = "Loading...";
   bool loading = false;
   bool loadOnLaunch = false;
   bool displayUsers = true;
+  bool allowDuplicates = true;
 
-  TextEditingController tempL = TextEditingController();
-  TextEditingController tempA = TextEditingController();
-  TextEditingController tempU = TextEditingController();
-  TextEditingController tempP = TextEditingController();
+  material.TextEditingController tempL = material.TextEditingController();
+  material.TextEditingController tempA = material.TextEditingController();
+  material.TextEditingController tempU = material.TextEditingController();
+  material.TextEditingController tempP = material.TextEditingController();
 
-  TextEditingController userL = TextEditingController();
-  TextEditingController userP = TextEditingController();
+  material.TextEditingController userL = material.TextEditingController();
+  material.TextEditingController userP = material.TextEditingController();
   List userErrors = [];
 
   bool tempPanelAddReady = false;
   bool tempPanelAddloading = false;
+
+  String globalPassword = "098f6bcd4621d373cade4e832627b4f6";
+
+  String decrypt(Encrypted encryptedData) {
+    final key = Key.fromUtf8(globalPassword);
+    final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+    final initVector = IV.fromUtf8(globalPassword.substring(0, 16));
+    return encrypter.decrypt(encryptedData, iv: initVector);
+  }
+
+  Encrypted encrypt(String plainText) {
+    final key = Key.fromUtf8(globalPassword);
+    final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+    final initVector = IV.fromUtf8(globalPassword.substring(0, 16));
+    Encrypted encryptedData = encrypter.encrypt(plainText, iv: initVector);
+    return encryptedData;
+  }
 
   Future <void> launch() async {
     loading = true; action = "Loading saved data...";
@@ -45,19 +64,35 @@ class fastEngine with ChangeNotifier{
     if(prefs.containsKey("displayUsers")){
       displayUsers = prefs.getBool("displayUsers")??true;
     }
+    if(prefs.containsKey("allowDuplicates")){
+      allowDuplicates = prefs.getBool("allowDuplicates")??true;
+    }
     if(prefs.containsKey("known")){
       String memKnown = "";
       memKnown = await prefs.getString("known")??"";
-      known = jsonDecode(memKnown);
+      try {
+        print("Known not encrypted");
+        known = jsonDecode(memKnown);
+      } on FormatException catch (e) {
+        known = jsonDecode(decrypt(Encrypted.fromBase64(memKnown)));
+      }
       if(prefs.containsKey("logins")){
         String memLogs = "";
         memLogs = await prefs.getString("logins")??"";
-        logins = jsonDecode(memLogs);
+        try {
+          logins = jsonDecode(memLogs);
+        } on FormatException catch (e) {
+          logins = jsonDecode(decrypt(Encrypted.fromBase64(memLogs)));
+        }
       }
       if(prefs.containsKey("domains")){
         String memDomains = "";
         memDomains = prefs.getString("domains")??"";
-        domains = jsonDecode(memDomains);
+        try {
+          domains = jsonDecode(memDomains);
+        } on FormatException catch (e) {
+          domains = jsonDecode(decrypt(Encrypted.fromBase64(memDomains)));
+        }
       }
       for(int i=0; i<known.length;i++){
         var keyVar = known[known.keys.toList()[i]]["addr"];
@@ -102,7 +137,7 @@ class fastEngine with ChangeNotifier{
     var domainIP = "";
     for(int a=0; a < known.length;a++){
       for(int i=0; i < domains[known.keys.toList()[a]].length;i++){
-        if(domains[known.keys.toList()[a]][i]["domain"] == userDomain){
+        if(domains[known.keys.toList()[a]][i]["name"] == userDomain){
           domainIP = known.keys.toList()[a];
         }
       }
@@ -128,7 +163,7 @@ class fastEngine with ChangeNotifier{
     notifyListeners();
     var pass = userP.text == ""?generateRandomString(12):userP.text;
     for(int a=0; a < userDomains.length;a++){
-      action = "Creating ${userL.text} on ${userDomains[a]["domain"]}...";
+      action = "Creating ${userL.text} on ${userDomains[a]["name"]}...";
       notifyListeners();
       await fastpanelCreateUser(
           userDomains[a]["id"],
@@ -137,7 +172,7 @@ class fastEngine with ChangeNotifier{
           pass,
           logins[userDomains[a]["server"]]["token"]
       ).then((value) async {
-        action = "Created ${userL.text} on ${userDomains[a]["domain"]}.";
+        action = "Created ${userL.text} on ${userDomains[a]["name"]}.";
         notifyListeners();
       });
     }
@@ -156,11 +191,25 @@ class fastEngine with ChangeNotifier{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setBool(key, value);
   }
+
   Future getDomains(ip) async{
     await checkLogin(ip);
-    var out = {};
-    await fastpanelDomains(ip, logins[ip]["token"]).then((value) {
-      out = value;
+    var out = [];
+    await fastpanelSites(ip, logins[ip]["token"]).then((site) async {
+      for(int i=0;i < site["data"].length;i++){
+        await fastpanelDomains(ip,site["data"][i]["id"], logins[ip]["token"]).then((domain) async {
+          if(!domain["data"][0]["name"].contains("smtp.")){
+            if(!availdomains.containsKey(ip)){
+              availdomains[ip] = [];
+            }
+            if(!domainNames.contains(domain["data"][0]["name"])){
+              availdomains[ip].add(domain);
+              domainNames.add(domain["data"][0]["name"]);
+            }
+            out.add(domain);
+          }
+        });
+      }
     });
     return out;
   }
@@ -172,7 +221,7 @@ class fastEngine with ChangeNotifier{
         availables[ip] = true;
         if(value.containsKey("token")){
           logins[ip] = value;
-          await prefs.setString("logins", jsonEncode(logins));
+          await prefs.setString("logins", encrypt(jsonEncode(logins)).base64);
           notifyListeners();
         }
       });
@@ -189,7 +238,7 @@ class fastEngine with ChangeNotifier{
         tempPanelAddReady = true;
         tempPanelAddloading = false;
         availables[tempA.text] = true;
-        await prefs.setString("logins", jsonEncode(logins));
+        await prefs.setString("logins", encrypt(jsonEncode(logins)).base64);
         notifyListeners();
       }else{
         tempPanelAddloading = false;
@@ -206,13 +255,13 @@ class fastEngine with ChangeNotifier{
       "pass": tempP.text,
     };
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("known", jsonEncode(known));
+    prefs.setString("known", encrypt(jsonEncode(known)).base64);
     notifyListeners();
     return true;
   }
   Future<bool> saveBrandList() async{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("known", jsonEncode(known));
+    prefs.setString("known", encrypt(jsonEncode(known)).base64);
     notifyListeners();
     return true;
   }
@@ -250,6 +299,9 @@ class fastEngine with ChangeNotifier{
   }
   Future<List> getAllUsers() async {
     users.clear();
+    loading = true;
+    action = "Loading users...";
+    notifyListeners();
     for(int i=0; i<known.length;i++){
       var keyVar = known[known.keys.toList()[i]]["addr"];
       if(!domains.containsKey(keyVar)){
@@ -257,6 +309,8 @@ class fastEngine with ChangeNotifier{
       }
       for(int a=0; a<domains[keyVar].length;a++){
         if(logins.containsKey(keyVar)){
+          action = "Getting users from ${domains[keyVar][a]["name"]}...";
+          notifyListeners();
           await checkLogin(keyVar).then((huh) async {
             await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
               users.addAll(value["data"]);
@@ -265,11 +319,14 @@ class fastEngine with ChangeNotifier{
         }
       }
     }
+    action = "Got users.";
+    loading = false;
+    notifyListeners();
     return users;
   }
   Future<bool> saveDomains() async{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("domains", jsonEncode(domains));
+    prefs.setString("domains", encrypt(jsonEncode(known)).base64);
     return true;
   }
 }
