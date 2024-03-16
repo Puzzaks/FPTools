@@ -112,40 +112,8 @@ class MyAppState extends State<MyApp> {
                                       child: Theme(
                                           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                                           child: ExpansionTile(
-                                            title: Text("Alternative actions"),
+                                            title: Text("Forgot passkey?"),
                                             children: [
-                                              Card(
-                                                elevation: 10,
-                                                child: Padding(
-                                                  padding: const EdgeInsets.all(15),
-                                                  child: Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                    children: [
-                                                      const Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(
-                                                            "Skip login",
-                                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                                          ),
-                                                          Text(
-                                                            "If you have never logged in",
-                                                          )
-                                                        ],
-                                                      ),
-                                                      FilledButton(
-                                                          onPressed: (){
-                                                            engine.launch();
-                                                            engine.loggedIn = true;
-                                                          },
-                                                          child: Text(
-                                                              "Skip"
-                                                          )
-                                                      )
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
                                               Card(
                                                 elevation: 10,
                                                 child: Padding(

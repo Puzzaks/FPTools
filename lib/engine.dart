@@ -47,7 +47,6 @@ class fastEngine with material.ChangeNotifier{
 
   Future<bool> checkPassword(String password) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    print(prefs.getString("globalPassword"));
     if(prefs.containsKey("globalPassword")){
       var refPWD = prefs.getString("globalPassword");
       var checkPWD = md5.convert(utf8.encode("$password-FPT")).toString();
