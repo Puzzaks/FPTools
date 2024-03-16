@@ -18,6 +18,7 @@ dependencies:
   window_manager: ^0.2.7
   dart_ping: ^9.0.1
   encrypt: ^5.0.3
+  crypto: ^3.0.3
   flutter:
     sdk: flutter
 

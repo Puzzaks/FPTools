@@ -37,7 +37,7 @@ class MyAppState extends State<MyApp> {
     HttpOverrides.global = MyHttpOverrides();
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<fastEngine>(context, listen: false).launch();
+      // Provider.of<fastEngine>(context, listen: false).launch();
     });
   }
 
@@ -67,7 +67,226 @@ class MyAppState extends State<MyApp> {
               body: Container(
                 width: scaffoldWidth,
                 height: scaffoldHeight,
-                child: engine.loading ?
+                child: !engine.loggedIn
+                  ? Center(
+                    child: Container(
+                        width: 420,
+                        child: Card(
+                            elevation: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.all(15),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Authentication",
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                  ),
+                                  Text(
+                                    "Please, log in using your passkey",
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.only(top:10),
+                                    child: TextField(
+                                      controller: TextEditingController(),
+                                      autofocus: true,
+                                      obscureText: true,
+                                      onChanged: (value) async {
+                                        await engine.checkPassword(value).then((value){
+                                          if(value){
+                                            engine.loggedIn = true;
+                                            engine.launch();
+                                          }
+                                        });
+                                      },
+                                      decoration: InputDecoration(
+                                        prefixIcon: Icon(Icons.password_rounded),
+                                        labelText: 'Passkey',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                  ),
+                                  ExpansionTileTheme(
+                                      data: ExpansionTileThemeData(tilePadding: EdgeInsets.symmetric(vertical: 0, horizontal: 5)),
+                                      child: Theme(
+                                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                          child: ExpansionTile(
+                                            title: Text("Alternative actions"),
+                                            children: [
+                                              Card(
+                                                elevation: 10,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(15),
+                                                  child: Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      const Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            "Skip login",
+                                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                          ),
+                                                          Text(
+                                                            "If you have never logged in",
+                                                          )
+                                                        ],
+                                                      ),
+                                                      FilledButton(
+                                                          onPressed: (){
+                                                            engine.launch();
+                                                            engine.loggedIn = true;
+                                                          },
+                                                          child: Text(
+                                                              "Skip"
+                                                          )
+                                                      )
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                              Card(
+                                                elevation: 10,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(15),
+                                                  child: Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      const Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            "Erase database",
+                                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                          ),
+                                                          Text(
+                                                            "If you have forgot your passkey",
+                                                          )
+                                                        ],
+                                                      ),
+                                                      FilledButton(
+                                                          onPressed: () {
+                                                            showDialog<String>(
+                                                              context: context,
+                                                              builder: (BuildContext context) => AlertDialog(
+                                                                icon: Icon(Icons.delete_rounded),
+                                                                title: const Text('Clear data?'),
+                                                                content: Column(
+                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  children: [
+                                                                    Text('You are about to clear all known servers and settings.\nPlease confirm this action'),
+                                                                  ],
+                                                                ),
+                                                                actions: [
+                                                                  Row(
+                                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                    children: [
+                                                                      FilledButton(
+                                                                          onPressed: () {
+                                                                            Navigator.pop(context);
+                                                                          },
+                                                                          style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
+                                                                          child: Text(
+                                                                            'Cancel',
+                                                                            style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                                          )
+                                                                      ),
+                                                                      FilledButton(
+                                                                          onPressed: () async {
+                                                                            engine.clearDB();
+                                                                            engine.launch();
+                                                                            engine.loggedIn = true;
+                                                                            Navigator.pop(context);
+                                                                          },
+                                                                          child: const Text('Confirm')
+                                                                      ),
+                                                                    ],
+                                                                  )
+                                                                ],
+                                                              ),
+                                                            );
+                                                          },
+                                                          style: ButtonStyle(
+                                                              backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)
+                                                          ),
+                                                          child: Text(
+                                                            'Erase',
+                                                            style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                          ))
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                      )
+                                  )
+                                ],
+                              ),
+                            )
+                        )
+                    )
+                )
+                : engine.globalPassword.isEmpty
+                    ? Center(
+                    child: Container(
+                        width: 420,
+                        child: Card(
+                            elevation: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.all(15),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Set up your passkey",
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                          ),
+                                          Text(
+                                            "Enter desired passkey for the app",
+                                          )
+                                        ],
+                                      ),
+                                      FilledButton(
+                                          onPressed: () async {
+                                            engine.setPassword(engine.globeP.text);
+                                            engine.clearDB();
+                                            engine.loggedIn = true;
+                                            engine.launch();
+                                          },
+                                          child: const Text('Save')
+                                      ),
+                                    ],
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.only(top:10),
+                                    child: TextField(
+                                      controller: engine.globeP,
+                                      autofocus: true,
+                                      decoration: InputDecoration(
+                                        prefixIcon: Icon(Icons.password_rounded),
+                                        labelText: 'Passkey',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                        )
+                    )
+                )
+                :engine.loading ?
                 Center(
                   child: Container(
                     height: 85,

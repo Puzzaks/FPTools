@@ -126,23 +126,67 @@ class SettingsPageState extends State<SettingsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "Spreadsheet-ready copying",
+                                    "Erase database",
                                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                   ),
                                   Text(
-                                    "Copy new users as username-password pair",
+                                    "If you have forgot your passkey",
                                   )
                                 ],
                               ),
-                              Switch(
-                                thumbIcon: thumbIcon,
-                                value: engine.loadOnLaunch,
-                                onChanged: (bool value) {
-                                  setState(() {
-                                    engine.loadOnLaunch = value;
-                                  });
-                                },
-                              )
+                              FilledButton(
+                                  onPressed: () {
+                                    showDialog<String>(
+                                      context: context,
+                                      builder: (BuildContext context) => AlertDialog(
+                                        icon: Icon(Icons.delete_rounded),
+                                        title: const Text('Clear data?'),
+                                        content: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text('You are about to clear all known servers and settings.\nPlease confirm this action'),
+                                          ],
+                                        ),
+                                        actions: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              FilledButton(
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+                                                  },
+                                                  style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
+                                                  child: Text(
+                                                    'Cancel',
+                                                    style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                  )
+                                              ),
+                                              FilledButton(
+                                                  onPressed: () async {
+                                                    engine.clearDB();
+                                                    engine.launch();
+                                                    engine.users.clear();
+                                                    engine.known.clear();
+                                                    engine.logins.clear();
+                                                    engine.loggedIn = false;
+                                                    Navigator.pop(context);
+                                                  },
+                                                  child: const Text('Confirm')
+                                              ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                  style: ButtonStyle(
+                                      backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)
+                                  ),
+                                  child: Text(
+                                    'Erase',
+                                    style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                  ))
                             ],
                           ),
                         ),

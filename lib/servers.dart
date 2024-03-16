@@ -112,7 +112,6 @@ class ServersPageState extends State<ServersPage> {
                                         engine.availables[server] ? FutureBuilder(
                                             future: engine.getDomains(server),
                                             builder: (BuildContext context, AsyncSnapshot domains) {
-                                              // print(domains);
                                               if (engine.availdomains.containsKey(server)) {
                                                 if (!engine.domains.containsKey(server)) {
                                                   engine.domains[server] = [];

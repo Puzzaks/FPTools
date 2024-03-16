@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:encrypt/encrypt.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,7 +41,35 @@ class fastEngine with material.ChangeNotifier{
   bool tempPanelAddReady = false;
   bool tempPanelAddloading = false;
 
-  String globalPassword = "098f6bcd4621d373cade4e832627b4f6";
+  bool loggedIn = false;
+  String globalPassword = "";
+  material.TextEditingController globeP = material.TextEditingController();
+
+  Future<bool> checkPassword(String password) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if(prefs.containsKey("globalPassword")){
+      var refPWD = prefs.getString("globalPassword");
+      var checkPWD = md5.convert(utf8.encode("$password-FPT")).toString();
+      print(refPWD);
+      print(checkPWD);
+      if(checkPWD == refPWD){
+        globalPassword = checkPWD;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<void> setPassword (String password) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString("globalPassword", md5.convert(utf8.encode("$password-FPT")).toString());
+    globalPassword = md5.convert(utf8.encode("$password-FPT")).toString();
+  }
+
+  clearDB() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.clear();
+  }
 
   String decrypt(Encrypted encryptedData) {
     final key = Key.fromUtf8(globalPassword);
@@ -71,7 +100,6 @@ class fastEngine with material.ChangeNotifier{
       String memKnown = "";
       memKnown = await prefs.getString("known")??"";
       try {
-        print("Known not encrypted");
         known = jsonDecode(memKnown);
       } on FormatException catch (e) {
         known = jsonDecode(decrypt(Encrypted.fromBase64(memKnown)));
@@ -326,7 +354,7 @@ class fastEngine with material.ChangeNotifier{
   }
   Future<bool> saveDomains() async{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("domains", encrypt(jsonEncode(known)).base64);
+    prefs.setString("domains", encrypt(jsonEncode(domains)).base64);
     return true;
   }
 }
