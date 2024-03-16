@@ -11,6 +11,7 @@ class SettingsPage extends StatefulWidget {
 
 class SettingsPageState extends State<SettingsPage> {
   @override
+  @override
   void initState() {
     super.initState();
   }
@@ -165,11 +166,13 @@ class SettingsPageState extends State<SettingsPage> {
                                               FilledButton(
                                                   onPressed: () async {
                                                     engine.clearDB();
-                                                    engine.launch();
                                                     engine.users.clear();
+                                                    engine.filtered.clear();
                                                     engine.known.clear();
                                                     engine.logins.clear();
-                                                    engine.loggedIn = false;
+                                                    engine.globalPassword = "";
+                                                    engine.globeP.text = "";
+                                                    engine.launch();
                                                     Navigator.pop(context);
                                                   },
                                                   child: const Text('Confirm')
