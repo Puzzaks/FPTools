@@ -259,8 +259,8 @@ class MyAppState extends State<MyApp> {
                                       ),
                                       FilledButton(
                                           onPressed: () async {
-                                            engine.setPassword(engine.globeP.text);
                                             engine.clearDB();
+                                            engine.setPassword(engine.globeP.text);
                                             engine.loggedIn = true;
                                             engine.launch();
                                           },
