@@ -7,10 +7,122 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'network.dart';
 
+class Translit {
+  final _transliteratedSymbol = <String, String>{
+    'А': 'A',
+    'Б': 'B',
+    'В': 'V',
+    'Г': 'G',
+    'Д': 'D',
+    'Е': 'E',
+    'З': 'Z',
+    'И': 'I',
+    'Й': 'J',
+    'К': 'K',
+    'Л': 'L',
+    'М': 'M',
+    'Н': 'N',
+    'О': 'O',
+    'П': 'P',
+    'Р': 'R',
+    'С': 'S',
+    'Т': 'T',
+    'У': 'U',
+    'Ф': 'F',
+    'Х': 'H',
+    'Ц': 'C',
+    'Ы': 'Y',
+    'а': 'a',
+    'б': 'b',
+    'в': 'v',
+    'г': 'g',
+    'д': 'd',
+    'е': 'e',
+    'з': 'z',
+    'и': 'i',
+    'й': 'j',
+    'к': 'k',
+    'л': 'l',
+    'м': 'm',
+    'н': 'n',
+    'о': 'o',
+    'п': 'p',
+    'р': 'r',
+    'с': 's',
+    'т': 't',
+    'у': 'u',
+    'ф': 'f',
+    'х': 'h',
+    'ц': 'c',
+    'ы': 'y',
+    "'": '',
+    '"': '',
+  };
+
+  final _complicatedSymbols = <String, String>{
+    'Є': 'Ye',
+    'є': 'ye',
+    'Ґ': 'G',
+    'ґ': 'g',
+    'ё': 'yo',
+    'Ё': 'Yo',
+    'І': 'I',
+    'і': 'i',
+    'Ї': 'Yi',
+    'ї': 'yi',
+    'Ж': 'Zh',
+    'Щ': 'Shhch',
+    'Ш': 'Shh',
+    'Ч': 'Ch',
+    'Э': "Eh'",
+    'Ю': 'Yu',
+    'Я': 'Ya',
+    'ё': 'yo',
+    'ж': 'zh',
+    'щ': 'shhch',
+    'ш': 'shh',
+    'ч': 'ch',
+    'э': "eh'",
+    'ъ': '"',
+    'ь': "'",
+    'ю': 'yu',
+    'я': 'ya',
+  };
+
+
+  /// Method for converting to translit for the [source] value
+  String toTranslit({required String source}) {
+    if (source.isEmpty) return source;
+
+    final regExp = RegExp(
+      '([А-Яа-яёЁЇїІіЄєҐґ]+)',
+      caseSensitive: false,
+      multiLine: true,
+    );
+
+    if (!regExp.hasMatch(source)) return source;
+
+    final translit = <String>[];
+    final sourceSymbols = <String>[...source.split('')];
+
+    _transliteratedSymbol.addAll(_complicatedSymbols);
+
+    for (final element in sourceSymbols) {
+      final transElement = _transliteratedSymbol.containsKey(element)
+          ? _transliteratedSymbol[element] ?? ''
+          : element;
+      translit.add(transElement);
+    }
+
+    return translit.join();
+  }
+}
+
 class fastEngine with material.ChangeNotifier{
   material.TextEditingController userSearch = material.TextEditingController(
       text: ""
   );
+  material.TextEditingController updatePassword = material.TextEditingController();
   Map known = {};
   List allUsers = [];
   Map logins = {};
@@ -20,6 +132,8 @@ class fastEngine with material.ChangeNotifier{
   Map filtered = {};
   Map domains = {};
   Map availdomains = {};
+  List toUpdate = [];
+  Map domainUsers = {};
   List domainNames = [];
   List userDomains = [];
   List creationDomains = [];
@@ -34,9 +148,12 @@ class fastEngine with material.ChangeNotifier{
   material.TextEditingController tempU = material.TextEditingController();
   material.TextEditingController tempP = material.TextEditingController();
 
-  material.TextEditingController userL = material.TextEditingController();
+  material.TextEditingController userL = material.TextEditingController(
+    text: ""
+  );
   material.TextEditingController userP = material.TextEditingController();
   List userErrors = [];
+  String userMessage = "Leave password field empty for random password";
 
   bool tempPanelAddReady = false;
   bool tempPanelAddloading = false;
@@ -69,6 +186,10 @@ class fastEngine with material.ChangeNotifier{
   clearDB() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.clear();
+  }
+
+  String normUsername(username){
+    return Translit().toTranslit(source: username).replaceAll(" ", ".").trim().toLowerCase();
   }
 
   String decrypt(Encrypted encryptedData) {
@@ -160,8 +281,9 @@ class fastEngine with material.ChangeNotifier{
   Future deleteUser(user) async {
     loading = true;
     action = "Deleting ${user["address"]}...";
-    notifyListeners();
     var userDomain = user["address"].replaceAll("${user["login"]}@", "");
+    toUpdate.add(userDomain);
+    notifyListeners();
     var domainIP = "";
     for(int a=0; a < known.length;a++){
       for(int i=0; i < domains[known.keys.toList()[a]].length;i++){
@@ -179,6 +301,29 @@ class fastEngine with material.ChangeNotifier{
     });
   }
 
+  Future updateUser(user) async {
+    loading = true;
+    var pass = updatePassword.text == ""?generateRandomString(12):updatePassword.text;
+    action = "Updating ${user["address"]}...";
+    notifyListeners();
+    var userDomain = user["address"].replaceAll("${user["login"]}@", "");
+    var domainIP = "";
+    for(int a=0; a < known.length;a++){
+      for(int i=0; i < domains[known.keys.toList()[a]].length;i++){
+        if(domains[known.keys.toList()[a]][i]["name"] == userDomain){
+          domainIP = known.keys.toList()[a];
+        }
+      }
+    }
+    await checkLogin(domainIP).then((value) async {
+      await fastpanelUpdateUser(user["id"], pass, domainIP, logins[domainIP]["token"]).then((value){
+        loading = false;
+        action = "User ${user["address"]} updated.";
+        notifyListeners();
+      });
+    });
+  }
+
   String generateRandomString(int len) {
     var r = Random();
     const _chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
@@ -187,20 +332,21 @@ class fastEngine with material.ChangeNotifier{
 
   Future createUser() async {
     loading = true;
-    action = "Creating ${userL.text}...";
+    action = "Creating ${normUsername(userL.text)}...";
     notifyListeners();
     var pass = userP.text == ""?generateRandomString(12):userP.text;
     for(int a=0; a < userDomains.length;a++){
-      action = "Creating ${userL.text} on ${userDomains[a]["name"]}...";
+      toUpdate.add(userDomains[a]["name"]);
+      action = "Creating ${normUsername(userL.text)} on ${userDomains[a]["name"]}...";
       notifyListeners();
       await fastpanelCreateUser(
           userDomains[a]["id"],
           userDomains[a]["server"],
-          userL.text,
+          normUsername(userL.text),
           pass,
           logins[userDomains[a]["server"]]["token"]
       ).then((value) async {
-        action = "Created ${userL.text} on ${userDomains[a]["name"]}.";
+        action = "Created ${normUsername(userL.text)} on ${userDomains[a]["name"]}.";
         notifyListeners();
       });
     }
@@ -209,7 +355,11 @@ class fastEngine with material.ChangeNotifier{
         action = "Created ${userL.text}.";
         loading = false;
         notifyListeners();
-        await Clipboard.setData(ClipboardData(text: "${userL.text}	$pass"));
+        await Clipboard.setData(ClipboardData(text: "${userDomains.length == 1 ? "${normUsername(userL.text)}@${userDomains[0]["name"]}" : normUsername(userL.text)}	$pass"));
+        userSearch.text = userL.text;
+        userL.text = "";
+        userP.text = "";
+        filterUsers();
         return pass;
       });
     });
@@ -297,11 +447,17 @@ class fastEngine with material.ChangeNotifier{
     loading = true;
     notifyListeners();
     filtered.clear();
+    users.clear();
+    for(int i = 0; i < domainUsers.length;i++){
+      for(int b = 0; b < domainUsers[domainUsers.keys.toList()[i]].length;b++){
+        users.add(domainUsers[domainUsers.keys.toList()[i]][b]);
+      }
+    }
     for(int i=0; i < users.length; i++){
       if(!allUsers.contains(users[i]["login"])){
         allUsers.add(users[i]["login"]);
       }
-      if(users[i]["login"].contains(userSearch.text)){
+      if(users[i]["login"].contains(normUsername(userSearch.text))){
         if(displayUsers){
           if(filtered.length < 100){
             if(!filtered.containsKey(users[i]["login"])){
@@ -325,6 +481,22 @@ class fastEngine with material.ChangeNotifier{
     notifyListeners();
     return filtered;
   }
+
+  Future updateCachedUsers() async{
+    loading = true;
+    action = "Updating users...";
+    notifyListeners();
+    users.clear();
+    for(int i = 0; i < domainUsers.length;i++){
+      for(int b = 0; b < domainUsers[domainUsers.keys.toList()[i]].length;b++){
+        users.add(domainUsers[domainUsers.keys.toList()[i]][b]);
+      }
+    }
+    loading = false;
+    action = "Updated users!";
+    notifyListeners();
+  }
+
   Future<List> getAllUsers() async {
     users.clear();
     loading = true;
@@ -336,14 +508,29 @@ class fastEngine with material.ChangeNotifier{
         domains[keyVar] = [];
       }
       for(int a=0; a<domains[keyVar].length;a++){
-        if(logins.containsKey(keyVar)){
-          action = "Getting users from ${domains[keyVar][a]["name"]}...";
-          notifyListeners();
-          await checkLogin(keyVar).then((huh) async {
-            await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
-              users.addAll(value["data"]);
+        if(toUpdate.isEmpty){
+          if(logins.containsKey(keyVar)){
+            action = "Getting users from ${domains[keyVar][a]["name"]}...";
+            notifyListeners();
+            await checkLogin(keyVar).then((huh) async {
+              await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
+                domainUsers[domains[keyVar][a]["name"]] = value["data"];
+              });
             });
-          });
+          }
+        }else{
+          if(toUpdate.contains(domains[keyVar][a]["name"])){
+            if(logins.containsKey(keyVar)){
+              action = "Getting users from ${domains[keyVar][a]["name"]}...";
+              toUpdate.remove(domains[keyVar][a]["name"]);
+              notifyListeners();
+              await checkLogin(keyVar).then((huh) async {
+                await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
+                  domainUsers[domains[keyVar][a]["name"]] = value["data"];
+                });
+              });
+            }
+          }
         }
       }
     }

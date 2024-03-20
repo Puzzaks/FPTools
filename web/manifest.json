@@ -1,6 +1,6 @@
 {
-    "name": "voisoassistant",
-    "short_name": "voisoassistant",
+    "name": "fptools",
+    "short_name": "fptools",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

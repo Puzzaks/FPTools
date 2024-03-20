@@ -140,16 +140,19 @@ class ServersPageState extends State<ServersPage> {
                                                               if(engine.domains[server][i]["id"] == domain["data"][0]["id"]){
                                                                 found = true;
                                                                 engine.domains[server].removeAt(i);
+                                                                engine.domainUsers.remove(domain["data"][0]["name"]);
+                                                                engine.toUpdate.remove(domain["data"][0]["name"]);
                                                               }
                                                             }
                                                             if(!found){
+                                                              engine.toUpdate.add(domain["data"][0]["name"]);
                                                               engine.domains[server].add(domain["data"][0]);
                                                             }
                                                             engine.saveDomains().then((value) async {
+                                                              engine.toUpdate.add(domain["data"][0]["name"]);
                                                               await engine.getAllUsers().then((value){
                                                                 engine.filterUsers();
                                                               });
-                                                              setState(() {});
                                                             });
                                                           },
                                                           child: Chip(

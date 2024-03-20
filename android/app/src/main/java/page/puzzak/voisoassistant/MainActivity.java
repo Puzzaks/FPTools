@@ -1,4 +1,4 @@
-package page.puzzak.voisoassistant;
+package page.puzzak.fptools;
 
 import io.flutter.embedding.android.FlutterActivity;
 

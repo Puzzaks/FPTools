@@ -41,6 +41,9 @@ class UsersPageState extends State<UsersPage> {
                   engine.userDomains = [];
                   engine.userErrors = [];
                   engine.creationDomains = [];
+                  engine.userL.text = "";
+                  engine.userP.text = "";
+                  engine.userErrors.add("Enter valid username");
                   engine.userErrors.add("No domains selected");
                   for(int i=0;i<engine.domains.length;i++){
                     for(int a=0;a<engine.domains[engine.domains.keys.toList()[i]].length;a++){
@@ -112,7 +115,62 @@ class UsersPageState extends State<UsersPage> {
                                                 ),
                                                 Row(
                                                   children: [
-                                                    IconButton(onPressed: () {}, icon: Icon(Icons.edit_rounded)),
+                                                    IconButton(onPressed: () {
+                                                      showDialog<String>(
+                                                        context: context,
+                                                        builder: (BuildContext context) => AlertDialog(
+                                                          content: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Text('Updating password for ${engine.filtered[login][0]["login"]}'),
+                                                              Padding(
+                                                                padding: EdgeInsets.only(top: 10),
+                                                                child: TextField(
+                                                                  controller: engine.updatePassword,
+                                                                  onChanged: (value) {
+                                                                  },
+                                                                  decoration: InputDecoration(
+                                                                    prefixIcon: Icon(Icons.password_rounded),
+                                                                    labelText: 'New password',
+                                                                    helperText: 'Leave empty for random password',
+                                                                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          actions: [
+                                                            Row(
+                                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                              children: [
+                                                                FilledButton(
+                                                                    onPressed: () {
+                                                                      Navigator.pop(context);
+                                                                    },
+                                                                    style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
+                                                                    child: Text(
+                                                                      'Cancel',
+                                                                      style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                                    )
+                                                                ),
+                                                                FilledButton(
+                                                                    onPressed: () async {
+                                                                      Navigator.pop(context);
+                                                                      for(int i = 0; i<accounts.length;i++){
+                                                                        await engine.updateUser(accounts[i]).then((value) async {
+
+                                                                        });
+                                                                      }
+                                                                    },
+                                                                    child: const Text('Confirm')
+                                                                ),
+                                                              ],
+                                                            )
+                                                          ],
+                                                        ),
+                                                      );
+                                                    }, icon: Icon(Icons.edit_rounded)),
                                                     IconButton(onPressed: () {
                                                       showDialog<String>(
                                                         context: context,
@@ -151,6 +209,7 @@ class UsersPageState extends State<UsersPage> {
                                                                     onPressed: () async {
                                                                       Navigator.pop(context);
                                                                       for(int i = 0; i<accounts.length;i++){
+                                                                        engine.toUpdate.add(accounts[i]["address"].replaceAll("${accounts[i]["login"]}@", ""));
                                                                         await engine.deleteUser(accounts[i]).then((value) async {
 
                                                                         });
@@ -191,7 +250,60 @@ class UsersPageState extends State<UsersPage> {
                                                       ),
                                                       Row(
                                                         children: [
-                                                          IconButton(onPressed: () {}, icon: Icon(Icons.edit_rounded)),
+                                                          IconButton(onPressed: () {
+                                                            showDialog<String>(
+                                                              context: context,
+                                                              builder: (BuildContext context) => AlertDialog(
+                                                                content: Column(
+                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  children: [
+                                                                    Text('Updating password for ${engine.filtered[login][0]["login"]}'),
+                                                                    Padding(
+                                                                      padding: EdgeInsets.only(top: 10),
+                                                                      child: TextField(
+                                                                        controller: engine.updatePassword,
+                                                                        onChanged: (value) {
+                                                                        },
+                                                                        decoration: InputDecoration(
+                                                                          prefixIcon: Icon(Icons.password_rounded),
+                                                                          labelText: 'New password',
+                                                                          helperText: 'Leave empty for random password',
+                                                                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                actions: [
+                                                                  Row(
+                                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                    children: [
+                                                                      FilledButton(
+                                                                          onPressed: () {
+                                                                            Navigator.pop(context);
+                                                                          },
+                                                                          style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
+                                                                          child: Text(
+                                                                            'Cancel',
+                                                                            style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                                          )
+                                                                      ),
+                                                                      FilledButton(
+                                                                          onPressed: () async {
+                                                                            Navigator.pop(context);
+                                                                            await engine.updateUser(account).then((value) async {
+
+                                                                            });
+                                                                          },
+                                                                          child: const Text('Confirm')
+                                                                      ),
+                                                                    ],
+                                                                  )
+                                                                ],
+                                                              ),
+                                                            );
+                                                          }, icon: Icon(Icons.edit_rounded)),
                                                           IconButton(onPressed: () {
                                                             showDialog<String>(
                                                               context: context,
@@ -217,6 +329,7 @@ class UsersPageState extends State<UsersPage> {
                                                                           onPressed: () async {
                                                                             Navigator.pop(context);
                                                                             await engine.deleteUser(account).then((value) async {
+                                                                              engine.toUpdate.add(account["address"].replaceAll("${account["login"]}@", ""));
                                                                               await engine.getAllUsers().then((value) async {
                                                                                 await engine.filterUsers().then((value) async {
 
@@ -249,7 +362,60 @@ class UsersPageState extends State<UsersPage> {
                                       ),
                                       Row(
                                         children: [
-                                          IconButton(onPressed: () {}, icon: Icon(Icons.edit_rounded)),
+                                          IconButton(onPressed: () {
+                                            showDialog<String>(
+                                              context: context,
+                                              builder: (BuildContext context) => AlertDialog(
+                                                content: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text('Updating password for ${engine.filtered[login][0]["login"]}'),
+                                                    Padding(
+                                                      padding: EdgeInsets.only(top: 10),
+                                                      child: TextField(
+                                                        controller: engine.updatePassword,
+                                                        onChanged: (value) {
+                                                        },
+                                                        decoration: InputDecoration(
+                                                          prefixIcon: Icon(Icons.password_rounded),
+                                                          labelText: 'New password',
+                                                          helperText: 'Leave empty for random password',
+                                                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                actions: [
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      FilledButton(
+                                                          onPressed: () {
+                                                            Navigator.pop(context);
+                                                          },
+                                                          style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
+                                                          child: Text(
+                                                            'Cancel',
+                                                            style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                          )
+                                                      ),
+                                                      FilledButton(
+                                                          onPressed: () async {
+                                                            Navigator.pop(context);
+                                                            await engine.updateUser(engine.filtered[login][0]).then((value) async {
+
+                                                            });
+                                                          },
+                                                          child: const Text('Confirm')
+                                                      ),
+                                                    ],
+                                                  )
+                                                ],
+                                              ),
+                                            );
+                                          }, icon: Icon(Icons.edit_rounded)),
                                           IconButton(onPressed: () {
                                             showDialog<String>(
                                               context: context,
@@ -275,6 +441,7 @@ class UsersPageState extends State<UsersPage> {
                                                           onPressed: () async {
                                                             Navigator.pop(context);
                                                             await engine.deleteUser(engine.filtered[login][0]).then((value) async {
+                                                              engine.toUpdate.add(engine.filtered[login][0]["address"].replaceAll("${engine.filtered[login][0]["login"]}@", ""));
                                                               await engine.getAllUsers().then((value) async {
                                                                 await engine.filterUsers().then((value){
                                                                 });
@@ -394,12 +561,17 @@ class NewUserPageState extends State<NewUserPage> {
                               child: TextField(
                                 controller: engine.userL,
                                 onChanged: (value) {
+                                  if(value == engine.normUsername(value)){
+                                    engine.userMessage = "Leave password field empty for random password";
+                                  }else{
+                                    engine.userMessage = "User will be created as ${engine.normUsername(value)}";
+                                  }
                                   if(engine.allUsers.contains(value) && engine.allowDuplicates){
                                     engine.userErrors.add("This user already exists");
                                   }else{
                                     engine.userErrors.remove("This user already exists");
                                   }
-                                  if(value == ""){
+                                  if(value == "" && engine.userL.text.isEmpty){
                                     engine.userErrors.add("Enter valid username");
                                   }else{
                                     engine.userErrors.remove("Enter valid username");
@@ -447,7 +619,7 @@ class NewUserPageState extends State<NewUserPage> {
                                 children: [
                                   Text(
                                     engine.userErrors.isEmpty
-                                        ? "Leave password field empty for random password"
+                                        ? engine.userMessage
                                         : engine.userErrors[0],
                                   )
                                 ],
@@ -470,8 +642,10 @@ class NewUserPageState extends State<NewUserPage> {
                                       return GestureDetector(
                                         onTap: () {
                                           if(engine.userDomains.contains(crD)){
+                                            engine.toUpdate.remove(crD["name"]);
                                             engine.userDomains.remove(crD);
                                           }else{
+                                            engine.toUpdate.add(crD["name"]);
                                             engine.userDomains.add(crD);
                                           }
                                           if(engine.userDomains.isEmpty){
@@ -525,10 +699,9 @@ class NewUserPageState extends State<NewUserPage> {
                             )
                         ),
                         FilledButton(
-                            onPressed: engine.userErrors.isEmpty ? () async {
-                              await engine.createUser().then((value){
-                                Navigator.pop(topContext);
-                              });
+                            onPressed: engine.userErrors.isEmpty ? () {
+                              engine.createUser();
+                              Navigator.pop(topContext);
                             }
                                 : null,
                             child: Text(

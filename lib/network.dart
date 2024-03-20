@@ -55,6 +55,24 @@ Future<Map> fastpanelDeleteUser(id, ip, key) async {
   return jsonDecode(response.body);
 }
 
+Future<Map> fastpanelUpdateUser(id, newpass, ip, key) async {
+  var headers = {
+    'Authorization': "Bearer $key",
+  };
+  Map data = {
+    'password': newpass
+  };
+  var body = json.encode(data);
+  var endpoint = "$ip:8888";
+  var method = "/api/mail/box/$id";
+  final response = await http.put(
+      Uri.https(endpoint, method),
+      body: body,
+      headers: headers
+  );
+  return jsonDecode(response.body);
+}
+
 Future<Map> fastpanelCreateUser(id, ip, username, password, key) async {
   var headers = {
     'Authorization': "Bearer $key",

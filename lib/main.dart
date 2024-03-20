@@ -13,7 +13,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   if (Platform.isWindows) {
-    WindowManager.instance.setMinimumSize(const Size(775, 525));
+    WindowManager.instance.setMinimumSize(const Size(600, 475));
     // WindowManager.instance.setMaximumSize(const Size(775, 525));
   }
 
@@ -270,7 +270,7 @@ class MyAppState extends State<MyApp> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Loading",
+                                  "Loading...",
                                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                 ),
                                 Text(
