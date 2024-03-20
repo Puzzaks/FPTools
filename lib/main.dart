@@ -1,11 +1,11 @@
 import 'dart:io';
-import 'package:voisoassistant/servers.dart';
-import 'package:voisoassistant/settings.dart';
-import 'package:voisoassistant/users.dart';
+import 'package:fptools/servers.dart';
+import 'package:fptools/settings.dart';
+import 'package:fptools/users.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:voisoassistant/engine.dart';
+import 'package:fptools/engine.dart';
 import 'network.dart';
 import 'package:provider/provider.dart';
 
@@ -258,7 +258,7 @@ class MyAppState extends State<MyApp> {
                 Center(
                   child: Container(
                     height: 85,
-                    width: 420,
+                    width: 450,
                     child: Card(
                       elevation: 2,
                       child: Padding(
@@ -292,12 +292,8 @@ class MyAppState extends State<MyApp> {
                   children: [
                     NavigationRail(
                       elevation: 5,
-                      extended: true,
+                      extended: false,
                       destinations: const [
-                        NavigationRailDestination(
-                          label: Text("Home", style: TextStyle(fontSize: 18)),
-                          icon: Icon(Icons.home_rounded),
-                        ),
                         NavigationRailDestination(
                           label: Text("Users", style: TextStyle(fontSize: 18)),
                           icon: Icon(Icons.person_rounded),
@@ -321,16 +317,16 @@ class MyAppState extends State<MyApp> {
                     ),
                     VerticalDivider(thickness: 1, width: 1),
                     Container(
-                      width: scaffoldWidth - 257,
+                      width: scaffoldWidth - 81,
                       height: scaffoldHeight,
                       child: Builder(
                         builder: (context) {
                           switch (screenIndex) {
-                            case 1:
+                            case 0:
                               return UsersPage(); //users
-                            case 2:
+                            case 1:
                               return ServersPage(); //brands
-                            case 3:
+                            case 2 :
                               return SettingsPage(); //settings
                             default:
                               return Container();

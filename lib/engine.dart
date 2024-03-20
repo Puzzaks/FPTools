@@ -49,7 +49,7 @@ class fastEngine with material.ChangeNotifier{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if(prefs.containsKey("globalPassword")){
       var refPWD = prefs.getString("globalPassword");
-      var checkPWD = md5.convert(utf8.encode("$password-FPT")).toString();
+      var checkPWD = md5.convert(utf8.encode(md5.convert(utf8.encode("$password-FPT")).toString())).toString();
       if(checkPWD == refPWD){
         globalPassword = checkPWD;
         loggedIn = true;
@@ -62,7 +62,7 @@ class fastEngine with material.ChangeNotifier{
 
   Future<void> setPassword (String password) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    globalPassword = md5.convert(utf8.encode("$password-FPT")).toString();
+    globalPassword = md5.convert(utf8.encode(md5.convert(utf8.encode("$password-FPT")).toString())).toString();
     prefs.setString("globalPassword", globalPassword);
   }
 
