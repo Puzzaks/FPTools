@@ -189,7 +189,7 @@ class fastEngine with material.ChangeNotifier{
   }
 
   String normUsername(username){
-    return Translit().toTranslit(source: username).replaceAll(" ", ".").trim().toLowerCase();
+    return Translit().toTranslit(source: username.trim()).replaceAll(" ", ".").toLowerCase();
   }
 
   String decrypt(Encrypted encryptedData) {
