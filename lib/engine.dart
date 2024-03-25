@@ -4,6 +4,7 @@ import 'package:encrypt/encrypt.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
+import 'package:latinize/latinize.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'network.dart';
 
@@ -143,15 +144,22 @@ class fastEngine with material.ChangeNotifier{
   bool displayUsers = true;
   bool allowDuplicates = true;
 
+  List newbieDomains = [];
+
   material.TextEditingController tempL = material.TextEditingController();
   material.TextEditingController tempA = material.TextEditingController();
   material.TextEditingController tempU = material.TextEditingController();
   material.TextEditingController tempP = material.TextEditingController();
 
-  material.TextEditingController userL = material.TextEditingController(
-    text: ""
-  );
+  material.TextEditingController userL = material.TextEditingController(text: "");
   material.TextEditingController userP = material.TextEditingController();
+
+  material.TextEditingController proxyUser = material.TextEditingController();
+  material.TextEditingController proxyPassword = material.TextEditingController();
+  material.TextEditingController proxyAddr = material.TextEditingController();
+  material.TextEditingController proxyPort = material.TextEditingController();
+
+
   List userErrors = [];
   String userMessage = "Leave password field empty for random password";
 
@@ -160,7 +168,13 @@ class fastEngine with material.ChangeNotifier{
 
   bool loggedIn = false;
   String globalPassword = "";
+
+  bool isProxyUsed = true;
+
   material.TextEditingController globeP = material.TextEditingController();
+
+
+  material.TextEditingController voisoKey = material.TextEditingController();
 
   Future<bool> checkPassword(String password) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -189,7 +203,7 @@ class fastEngine with material.ChangeNotifier{
   }
 
   String normUsername(username){
-    return Translit().toTranslit(source: username.trim()).replaceAll(" ", ".").toLowerCase();
+    return Translit().toTranslit(source: latinize(username.trim())).replaceAll(" ", ".").toLowerCase();
   }
 
   String decrypt(Encrypted encryptedData) {
@@ -426,12 +440,15 @@ class fastEngine with material.ChangeNotifier{
     });
   }
   Future<bool> saveBrand() async{
-    known[tempA.text] = {
+    Map tempKnown = {};
+    tempKnown[tempA.text] = {
       "name": tempL.text,
       "addr": tempA.text,
       "user": tempU.text,
       "pass": tempP.text,
     };
+    tempKnown.addAll(known);
+    known = tempKnown;
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString("known", encrypt(jsonEncode(known)).base64);
     notifyListeners();
@@ -444,6 +461,9 @@ class fastEngine with material.ChangeNotifier{
     return true;
   }
   Future <Map> filterUsers() async {
+    loading = true;
+    action = "Validating...";
+    notifyListeners();
     loading = true;
     notifyListeners();
     filtered.clear();
@@ -464,9 +484,23 @@ class fastEngine with material.ChangeNotifier{
               filtered[users[i]["login"]] = [];
             }
             filtered[users[i]["login"]].add(users[i]);
+            for(int h = 0 ; h < filtered[users[i]["login"]].length ; h++){
+              if(newbieDomains.isNotEmpty){
+                if(newbieDomains.contains(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""))){
+                  newbieDomains.remove(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""));
+                }
+              }
+            }
           }else{
             if(filtered.containsKey(users[i]["login"])){
               filtered[users[i]["login"]].add(users[i]);
+              for(int h = 0 ; h < filtered[users[i]["login"]].length ; h++){
+                if(newbieDomains.isNotEmpty){
+                  if(newbieDomains.contains(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""))){
+                    newbieDomains.remove(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""));
+                  }
+                }
+              }
             }
           }
         }else {
@@ -474,6 +508,13 @@ class fastEngine with material.ChangeNotifier{
             filtered[users[i]["login"]] = [];
           }
           filtered[users[i]["login"]].add(users[i]);
+          for(int h = 0 ; h < filtered[users[i]["login"]].length ; h++){
+            if(newbieDomains.isNotEmpty){
+              if(newbieDomains.contains(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""))){
+                newbieDomains.remove(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""));
+              }
+            }
+          }
         }
       }
     }
@@ -534,6 +575,7 @@ class fastEngine with material.ChangeNotifier{
         }
       }
     }
+    toUpdate.clear();
     action = "Got users.";
     loading = false;
     notifyListeners();

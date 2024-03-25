@@ -176,6 +176,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.1"
+  latinize:
+    dependency: "direct main"
+    description:
+      name: latinize
+      sha256: "559eaa76d4641d977680b64080806174efabddebac365fc26d1c333aabb4070e"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0-nullsafety.0"
   leak_tracker:
     dependency: transitive
     description:

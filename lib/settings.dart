@@ -120,6 +120,86 @@ class SettingsPageState extends State<SettingsPage> {
                         elevation: 2,
                         child: Padding(
                           padding: const EdgeInsets.all(15),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Use proxy",
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                      ),
+                                      Text(
+                                        "Proxy all apps traffic through SOCKS",
+                                      )
+                                    ],
+                                  ),
+                                  Switch(
+                                    thumbIcon: thumbIcon,
+                                    value: engine.isProxyUsed,
+                                    onChanged: (bool value) {
+                                      setState(() {
+                                        engine.isProxyUsed = value;
+                                        engine.saveToggle("isProxyUsed", value);
+                                        engine.filterUsers();
+                                      });
+                                    },
+                                  )
+                                ],
+                              ),
+                              engine.isProxyUsed
+                              ? Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Padding(
+                                          padding: EdgeInsets.only(left:5, right: 5,bottom: 5),
+                                          child: TextField(
+                                            controller: engine.proxyAddr,
+                                            onChanged: (value) {
+
+                                            },
+                                            decoration: InputDecoration(
+                                              prefixIcon: Icon(Icons.person_rounded),
+                                              labelText: 'Proxy IP',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                          child: Padding(
+                                            padding: EdgeInsets.only(right: 5, left: 5,bottom: 5,),
+                                            child: TextField(
+                                              controller: engine.proxyPort,
+                                              onChanged: (value) {
+
+                                              },
+                                              decoration: InputDecoration(
+                                                prefixIcon: Icon(Icons.password_rounded),
+                                                labelText: 'Proxy port',
+                                                border: OutlineInputBorder(),
+                                              ),
+                                            ),
+                                          )
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              )
+                                  : Container()
+                            ],
+                          )
+                        ),
+                      ),
+                      Card(
+                        elevation: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(15),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [

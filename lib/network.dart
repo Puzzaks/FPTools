@@ -5,9 +5,14 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class MyHttpOverrides extends HttpOverrides{
+  final ipAddress = '141.98.164.163';
+  int port = 64874;
+  final credentials = HttpClientBasicCredentials('j8hkqMbw', 'Lr9q29Ri');
   @override
   HttpClient createHttpClient(SecurityContext? context){
     return super.createHttpClient(context)
+      ..addProxyCredentials(ipAddress, port, 'main', credentials)
+      ..findProxy = ((uri) => 'PROXY $ipAddress:$port')
       ..badCertificateCallback = (X509Certificate cert, String host, int port)=> true;
   }
 }

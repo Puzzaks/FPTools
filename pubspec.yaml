@@ -1,5 +1,5 @@
-name: fptools
-description: "FPTools"
+name: onetool
+description: "onetool"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 version: 1.0.0+1
@@ -19,6 +19,7 @@ dependencies:
   dart_ping: ^9.0.1
   encrypt: ^5.0.3
   crypto: ^3.0.3
+  latinize: '>=0.0.1 <1.0.0'
   flutter:
     sdk: flutter
 

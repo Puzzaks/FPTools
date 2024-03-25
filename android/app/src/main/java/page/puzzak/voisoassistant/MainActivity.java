@@ -1,4 +1,4 @@
-package page.puzzak.fptools;
+package page.puzzak.onetool;
 
 import io.flutter.embedding.android.FlutterActivity;
 

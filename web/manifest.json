@@ -1,6 +1,6 @@
 {
-    "name": "fptools",
-    "short_name": "fptools",
+    "name": "onetool",
+    "short_name": "onetool",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

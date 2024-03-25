@@ -1,16 +1,15 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'engine.dart';
 
-class UsersPage extends StatefulWidget {
-  const UsersPage({super.key});
+class AgentsPage extends StatefulWidget {
+  const AgentsPage({super.key});
   @override
-  UsersPageState createState() => UsersPageState();
+  AgentsPageState createState() => AgentsPageState();
 }
 
-class UsersPageState extends State<UsersPage> {
+class AgentsPageState extends State<AgentsPage> {
   @override
   void initState() {
     super.initState();
@@ -80,29 +79,6 @@ class UsersPageState extends State<UsersPage> {
                       ),
                     ),
                   ),
-                  engine.newbieDomains.isNotEmpty ? Card(
-                    elevation: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.all(15),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Padding(padding: EdgeInsets.only(right: 10), child: Icon(Icons.warning_rounded)),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: scaffoldWidth,
-                                child: Text(
-                                  "Unable to create user at ${engine.newbieDomains.toList()}. Try again.",
-                                ),
-                              )
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ) : Container(),
                   Container(
                     height: engine.filtered.length == 0?null:scaffoldHeight - 66,
                     child: engine.filtered.isNotEmpty
@@ -139,71 +115,62 @@ class UsersPageState extends State<UsersPage> {
                                                 ),
                                                 Row(
                                                   children: [
-                                                    IconButton(
-                                                      onPressed: () async {
-                                                        await Clipboard.setData(ClipboardData(text: engine.filtered[login][0]["login"]));
-                                                      },
-                                                      icon: Icon(Icons.copy_rounded)
-                                                  ),
-                                                    IconButton(
-                                                        onPressed: () {
-                                                          showDialog<String>(
-                                                            context: context,
-                                                            builder: (BuildContext context) => AlertDialog(
-                                                              content: Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                mainAxisSize: MainAxisSize.min,
-                                                                children: [
-                                                                  Text('Updating password for ${engine.filtered[login][0]["login"]}'),
-                                                                  Padding(
-                                                                    padding: EdgeInsets.only(top: 10),
-                                                                    child: TextField(
-                                                                      controller: engine.updatePassword,
-                                                                      onChanged: (value) {
-                                                                      },
-                                                                      decoration: InputDecoration(
-                                                                        prefixIcon: Icon(Icons.password_rounded),
-                                                                        labelText: 'New password',
-                                                                        helperText: 'Leave empty for random password',
-                                                                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
-                                                                      ),
-                                                                    ),
+                                                    IconButton(onPressed: () {
+                                                      showDialog<String>(
+                                                        context: context,
+                                                        builder: (BuildContext context) => AlertDialog(
+                                                          content: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Text('Updating password for ${engine.filtered[login][0]["login"]}'),
+                                                              Padding(
+                                                                padding: EdgeInsets.only(top: 10),
+                                                                child: TextField(
+                                                                  controller: engine.updatePassword,
+                                                                  onChanged: (value) {
+                                                                  },
+                                                                  decoration: InputDecoration(
+                                                                    prefixIcon: Icon(Icons.password_rounded),
+                                                                    labelText: 'New password',
+                                                                    helperText: 'Leave empty for random password',
+                                                                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
                                                                   ),
-                                                                ],
+                                                                ),
                                                               ),
-                                                              actions: [
-                                                                Row(
-                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                                  children: [
-                                                                    FilledButton(
-                                                                        onPressed: () {
-                                                                          Navigator.pop(context);
-                                                                        },
-                                                                        style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
-                                                                        child: Text(
-                                                                          'Cancel',
-                                                                          style: TextStyle(color: Theme.of(context).colorScheme.background),
-                                                                        )
-                                                                    ),
-                                                                    FilledButton(
-                                                                        onPressed: () async {
-                                                                          Navigator.pop(context);
-                                                                          for(int i = 0; i<accounts.length;i++){
-                                                                            await engine.updateUser(accounts[i]).then((value) async {
+                                                            ],
+                                                          ),
+                                                          actions: [
+                                                            Row(
+                                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                              children: [
+                                                                FilledButton(
+                                                                    onPressed: () {
+                                                                      Navigator.pop(context);
+                                                                    },
+                                                                    style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
+                                                                    child: Text(
+                                                                      'Cancel',
+                                                                      style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                                    )
+                                                                ),
+                                                                FilledButton(
+                                                                    onPressed: () async {
+                                                                      Navigator.pop(context);
+                                                                      for(int i = 0; i<accounts.length;i++){
+                                                                        await engine.updateUser(accounts[i]).then((value) async {
 
-                                                                            });
-                                                                          }
-                                                                        },
-                                                                        child: const Text('Confirm')
-                                                                    ),
-                                                                  ],
-                                                                )
+                                                                        });
+                                                                      }
+                                                                    },
+                                                                    child: const Text('Confirm')
+                                                                ),
                                                               ],
-                                                            ),
-                                                          );
-                                                        },
-                                                        icon: Icon(Icons.edit_rounded)
-                                                    ),
+                                                            )
+                                                          ],
+                                                        ),
+                                                      );
+                                                    }, icon: Icon(Icons.edit_rounded)),
                                                     IconButton(onPressed: () {
                                                       showDialog<String>(
                                                         context: context,
@@ -283,12 +250,6 @@ class UsersPageState extends State<UsersPage> {
                                                       ),
                                                       Row(
                                                         children: [
-                                                          IconButton(
-                                                              onPressed: () async {
-                                                                await Clipboard.setData(ClipboardData(text: account["address"]));
-                                                              },
-                                                              icon: Icon(Icons.copy_rounded)
-                                                          ),
                                                           IconButton(onPressed: () {
                                                             showDialog<String>(
                                                               context: context,
@@ -401,12 +362,6 @@ class UsersPageState extends State<UsersPage> {
                                       ),
                                       Row(
                                         children: [
-                                          IconButton(
-                                              onPressed: () async {
-                                                await Clipboard.setData(ClipboardData(text: engine.filtered[login][0]["address"]));
-                                              },
-                                              icon: Icon(Icons.copy_rounded)
-                                          ),
                                           IconButton(onPressed: () {
                                             showDialog<String>(
                                               context: context,
@@ -569,200 +524,199 @@ class NewUserPageState extends State<NewUserPage> {
     return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
       return LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
-        double scaffoldHeight = constraints.maxHeight;
-        double scaffoldWidth = constraints.maxWidth;
-        return MaterialApp(
-          theme: ThemeData(
-            colorScheme: lightColorScheme ?? _defaultLightColorScheme,
-            useMaterial3: true,
-          ),
-          darkTheme: ThemeData(
-            colorScheme: darkColorScheme ?? _defaultDarkColorScheme,
-            useMaterial3: true,
-          ),
-          themeMode: ThemeMode.system,
-          debugShowCheckedModeBanner: false,
-          home: Consumer<fastEngine>(builder: (context, engine, child) {
-            return Scaffold(
-              body: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
+            double scaffoldHeight = constraints.maxHeight;
+            double scaffoldWidth = constraints.maxWidth;
+            return MaterialApp(
+              theme: ThemeData(
+                colorScheme: lightColorScheme ?? _defaultLightColorScheme,
+                useMaterial3: true,
+              ),
+              darkTheme: ThemeData(
+                colorScheme: darkColorScheme ?? _defaultDarkColorScheme,
+                useMaterial3: true,
+              ),
+              themeMode: ThemeMode.system,
+              debugShowCheckedModeBanner: false,
+              home: Consumer<fastEngine>(builder: (context, engine, child) {
+                return Scaffold(
+                  body: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Text(
-                          "Add new user",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-                        ),
-                      ),
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(left:5, right: 5,bottom: 5),
-                              child: TextField(
-                                controller: engine.userL,
-                                onChanged: (value) {
-                                  if(value == engine.normUsername(value)){
-                                    engine.userMessage = "Leave password field empty for random password";
-                                  }else{
-                                    engine.userMessage = "User will be created as ${engine.normUsername(value)}";
-                                  }
-                                  if(engine.allUsers.contains(value) && engine.allowDuplicates){
-                                    engine.userErrors.add("This user already exists");
-                                  }else{
-                                    engine.userErrors.remove("This user already exists");
-                                  }
-                                  if(value == "" && engine.userL.text.isEmpty){
-                                    engine.userErrors.add("Enter valid username");
-                                  }else{
-                                    engine.userErrors.remove("Enter valid username");
-                                  }
-                                  setState(() {
-
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  prefixIcon: Icon(Icons.person_rounded),
-                                  labelText: 'Username',
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
+                          Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Text(
+                              "Add new user",
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
                             ),
                           ),
-                          Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.only(right: 5, left: 5,bottom: 5,),
-                                child: TextField(
-                                  controller: engine.userP,
-                                  onChanged: (value) {
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding: EdgeInsets.only(left:5, right: 5,bottom: 5),
+                                  child: TextField(
+                                    controller: engine.userL,
+                                    onChanged: (value) {
+                                      if(value == engine.normUsername(value)){
+                                        engine.userMessage = "Leave password field empty for random password";
+                                      }else{
+                                        engine.userMessage = "User will be created as ${engine.normUsername(value)}";
+                                      }
+                                      if(engine.allUsers.contains(value) && engine.allowDuplicates){
+                                        engine.userErrors.add("This user already exists");
+                                      }else{
+                                        engine.userErrors.remove("This user already exists");
+                                      }
+                                      if(value == "" && engine.userL.text.isEmpty){
+                                        engine.userErrors.add("Enter valid username");
+                                      }else{
+                                        engine.userErrors.remove("Enter valid username");
+                                      }
+                                      setState(() {
 
-                                  },
-                                  decoration: InputDecoration(
-                                    prefixIcon: Icon(Icons.password_rounded),
-                                    labelText: 'Password',
-                                    border: OutlineInputBorder(),
+                                      });
+                                    },
+                                    decoration: InputDecoration(
+                                      prefixIcon: Icon(Icons.person_rounded),
+                                      labelText: 'Username',
+                                      border: OutlineInputBorder(),
+                                    ),
                                   ),
                                 ),
-                              )
-                          ),
-                        ],
-                      ),
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(15),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Padding(padding: EdgeInsets.only(right: 10), child: engine.userErrors.isEmpty ? Icon(Icons.info_outline_rounded) : Icon(Icons.error_rounded)),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    engine.userErrors.isEmpty
-                                        ? engine.userMessage
-                                        : engine.userErrors[0],
+                              ),
+                              Expanded(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(right: 5, left: 5,bottom: 5,),
+                                    child: TextField(
+                                      controller: engine.userP,
+                                      onChanged: (value) {
+
+                                      },
+                                      decoration: InputDecoration(
+                                        prefixIcon: Icon(Icons.password_rounded),
+                                        labelText: 'Password',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
                                   )
-                                ],
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-                        child: Container(
-                          height: scaffoldHeight - 246,
-                          child: SingleChildScrollView(
-                            child: Builder(
-                                builder: (context) {
-                                  return Wrap(
-                                    spacing: 5,
-                                    runSpacing: 5,
-                                    children: engine.creationDomains.map((crD) {
-                                      return GestureDetector(
-                                        onTap: () {
-                                          if(engine.userDomains.contains(crD)){
-                                            engine.toUpdate.remove(crD["name"]);
-                                            engine.userDomains.remove(crD);
-                                          }else{
-                                            engine.toUpdate.add(crD["name"]);
-                                            engine.userDomains.add(crD);
-                                          }
-                                          if(engine.userDomains.isEmpty){
-                                            engine.userErrors.add("No domains selected");
-                                          }else{
-                                            engine.userErrors.remove("No domains selected");
-                                          }
-                                          setState(() {});
-                                        },
-                                        child: Chip(
-                                          backgroundColor: engine.userDomains.contains(crD)
-                                              ? Theme.of(context).colorScheme.primary
-                                              : null,
-                                          label: Text(
-                                            "${crD["name"]}",
-                                            style: TextStyle(
-                                              fontWeight:
-                                              engine.userDomains.contains(crD) ? FontWeight.w600 : FontWeight.w400,
-                                              color: engine.userDomains.contains(crD)
-                                                  ? Theme.of(context).colorScheme.background
-                                                  : Colors.grey,
-                                            ),
-                                          ),
-                                          elevation: 5.0,
-                                        ),
-                                      );
-                                    })
-                                        .toList()
-                                        .cast<Widget>(),
-                                  );
-                                }
+                          Card(
+                            elevation: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.all(15),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Padding(padding: EdgeInsets.only(right: 10), child: engine.userErrors.isEmpty ? Icon(Icons.info_outline_rounded) : Icon(Icons.error_rounded)),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        engine.userErrors.isEmpty
+                                            ? engine.userMessage
+                                            : engine.userErrors[0],
+                                      )
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                            child: Container(
+                              height: scaffoldHeight - 246,
+                              child: SingleChildScrollView(
+                                child: Builder(
+                                    builder: (context) {
+                                      return Wrap(
+                                        spacing: 5,
+                                        runSpacing: 5,
+                                        children: engine.creationDomains.map((crD) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              if(engine.userDomains.contains(crD)){
+                                                engine.toUpdate.remove(crD["name"]);
+                                                engine.userDomains.remove(crD);
+                                              }else{
+                                                engine.toUpdate.add(crD["name"]);
+                                                engine.userDomains.add(crD);
+                                              }
+                                              if(engine.userDomains.isEmpty){
+                                                engine.userErrors.add("No domains selected");
+                                              }else{
+                                                engine.userErrors.remove("No domains selected");
+                                              }
+                                              setState(() {});
+                                            },
+                                            child: Chip(
+                                              backgroundColor: engine.userDomains.contains(crD)
+                                                  ? Theme.of(context).colorScheme.primary
+                                                  : null,
+                                              label: Text(
+                                                "${crD["name"]}",
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                  engine.userDomains.contains(crD) ? FontWeight.w600 : FontWeight.w400,
+                                                  color: engine.userDomains.contains(crD)
+                                                      ? Theme.of(context).colorScheme.background
+                                                      : Colors.grey,
+                                                ),
+                                              ),
+                                              elevation: 5.0,
+                                            ),
+                                          );
+                                        })
+                                            .toList()
+                                            .cast<Widget>(),
+                                      );
+                                    }
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(15),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            FilledButton(
+                                onPressed: () {
+                                  Navigator.pop(topContext);
+                                },
+                                style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
+                                child: Text(
+                                  'Cancel',
+                                  style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                )
+                            ),
+                            FilledButton(
+                                onPressed: engine.userErrors.isEmpty ? () {
+                                  engine.createUser();
+                                  Navigator.pop(topContext);
+                                }
+                                    : null,
+                                child: Text(
+                                    engine.userDomains.length > 1 ? "Create users" : "Create user"
+                                )
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  Padding(
-                    padding: EdgeInsets.all(15),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        FilledButton(
-                            onPressed: () {
-                              Navigator.pop(topContext);
-                            },
-                            style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(color: Theme.of(context).colorScheme.background),
-                            )
-                        ),
-                        FilledButton(
-                            onPressed: engine.userErrors.isEmpty ? () {
-                              engine.newbieDomains = engine.userDomains.map((domain){return domain["name"];}).toList();
-                              engine.createUser();
-                              Navigator.pop(topContext);
-                            }
-                                : null,
-                            child: Text(
-                                engine.userDomains.length > 1 ? "Create users" : "Create user"
-                            )
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                );
+              }),
             );
-          }),
-        );
-      });
+          });
     });
   }
 }

@@ -1,11 +1,12 @@
 import 'dart:io';
-import 'package:fptools/servers.dart';
-import 'package:fptools/settings.dart';
-import 'package:fptools/users.dart';
+import 'package:onetool/servers.dart';
+import 'package:onetool/settings.dart';
+import 'package:onetool/users.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:fptools/engine.dart';
+import 'package:onetool/engine.dart';
+import 'agents.dart';
 import 'network.dart';
 import 'package:provider/provider.dart';
 
@@ -58,7 +59,6 @@ class MyAppState extends State<MyApp> {
         ),
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
-        title: 'FastPanel Toolkit',
         home: Consumer<fastEngine>(builder: (context, engine, child) {
           return LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
             double scaffoldHeight = constraints.maxHeight;
@@ -303,6 +303,10 @@ class MyAppState extends State<MyApp> {
                           icon: Icon(Icons.dns_rounded),
                         ),
                         NavigationRailDestination(
+                          label: Text("Voiso Users", style: TextStyle(fontSize: 18)),
+                          icon: Icon(Icons.dialer_sip_rounded),
+                        ),
+                        NavigationRailDestination(
                           label: Text("Settings", style: TextStyle(fontSize: 18)),
                           icon: Icon(Icons.settings_rounded),
                         ),
@@ -322,14 +326,11 @@ class MyAppState extends State<MyApp> {
                       child: Builder(
                         builder: (context) {
                           switch (screenIndex) {
-                            case 0:
-                              return UsersPage(); //users
-                            case 1:
-                              return ServersPage(); //brands
-                            case 2 :
-                              return SettingsPage(); //settings
-                            default:
-                              return Container();
+                            case 0: return UsersPage(); // FastPanel Mailboxes
+                            case 1: return ServersPage(); // FastPanel Instances
+                            case 2: return AgentsPage(); // Voiso Agents
+                            case 3: return SettingsPage(); // App Settings
+                            default: return Container();
                           }
                         },
                       ),
