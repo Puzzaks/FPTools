@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:provider/provider.dart';
 import 'engine.dart';
+import 'network.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -45,236 +48,298 @@ class SettingsPageState extends State<SettingsPage> {
                 double scaffoldHeight = constraints.maxHeight;
                 double scaffoldWidth = constraints.maxWidth;
                 return Scaffold(
-                  body: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(15),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Display less users",
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                  ),
-                                  Text(
-                                    "Limit amount of users in the list",
-                                  )
-                                ],
-                              ),
-                              Switch(
-                                thumbIcon: thumbIcon,
-                                value: engine.displayUsers,
-                                onChanged: (bool value) {
-                                  setState(() {
-                                    engine.displayUsers = value;
-                                    engine.saveToggle("displayUsers", value);
-                                    engine.filterUsers();
-                                  });
-                                },
-                              )
-                            ],
+                  body: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Card(
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Display less users",
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                    ),
+                                    Text(
+                                      "Limit amount of users in the list",
+                                    )
+                                  ],
+                                ),
+                                Switch(
+                                  thumbIcon: thumbIcon,
+                                  value: engine.displayUsers,
+                                  onChanged: (bool value) {
+                                    setState(() {
+                                      engine.displayUsers = value;
+                                      engine.saveToggle("displayUsers", value);
+                                      engine.filterUsers();
+                                    });
+                                  },
+                                )
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(15),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Check for duplicates",
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                  ),
-                                  Text(
-                                    "Disallow creation of existing users",
-                                  )
-                                ],
-                              ),
-                              Switch(
-                                thumbIcon: thumbIcon,
-                                value: engine.allowDuplicates,
-                                onChanged: (bool value) {
-                                  setState(() {
-                                    engine.allowDuplicates = value;
-                                    engine.saveToggle("allowDuplicates", value);
-                                    engine.filterUsers();
-                                  });
-                                },
-                              )
-                            ],
+                        Card(
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Check for duplicates",
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                    ),
+                                    Text(
+                                      "Disallow creation of existing users",
+                                    )
+                                  ],
+                                ),
+                                Switch(
+                                  thumbIcon: thumbIcon,
+                                  value: engine.allowDuplicates,
+                                  onChanged: (bool value) {
+                                    setState(() {
+                                      engine.allowDuplicates = value;
+                                      engine.saveToggle("allowDuplicates", value);
+                                      engine.filterUsers();
+                                    });
+                                  },
+                                )
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(15),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Use proxy",
-                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                      ),
-                                      Text(
-                                        "Proxy all apps traffic through SOCKS",
-                                      )
-                                    ],
-                                  ),
-                                  Switch(
-                                    thumbIcon: thumbIcon,
-                                    value: engine.isProxyUsed,
-                                    onChanged: (bool value) {
-                                      setState(() {
-                                        engine.isProxyUsed = value;
-                                        engine.saveToggle("isProxyUsed", value);
-                                        engine.filterUsers();
-                                      });
-                                    },
-                                  )
-                                ],
-                              ),
-                              engine.isProxyUsed
-                              ? Column(
+                        Card(
+                          elevation: 2,
+                          child: Padding(
+                              padding: const EdgeInsets.all(15),
+                              child: Column(
                                 children: [
                                   Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Expanded(
-                                        child: Padding(
-                                          padding: EdgeInsets.only(left:5, right: 5,bottom: 5),
-                                          child: TextField(
-                                            controller: engine.proxyAddr,
-                                            onChanged: (value) {
-
-                                            },
-                                            decoration: InputDecoration(
-                                              prefixIcon: Icon(Icons.person_rounded),
-                                              labelText: 'Proxy IP',
-                                              border: OutlineInputBorder(),
-                                            ),
+                                      const Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Use proxy",
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                           ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                          child: Padding(
-                                            padding: EdgeInsets.only(right: 5, left: 5,bottom: 5,),
-                                            child: TextField(
-                                              controller: engine.proxyPort,
-                                              onChanged: (value) {
-
-                                              },
-                                              decoration: InputDecoration(
-                                                prefixIcon: Icon(Icons.password_rounded),
-                                                labelText: 'Proxy port',
-                                                border: OutlineInputBorder(),
-                                              ),
-                                            ),
-                                          )
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              )
-                                  : Container()
-                            ],
-                          )
-                        ),
-                      ),
-                      Card(
-                        elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(15),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Erase database",
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                  ),
-                                  Text(
-                                    "If you have forgot your passkey",
-                                  )
-                                ],
-                              ),
-                              FilledButton(
-                                  onPressed: () {
-                                    showDialog<String>(
-                                      context: context,
-                                      builder: (BuildContext context) => AlertDialog(
-                                        icon: Icon(Icons.delete_rounded),
-                                        title: const Text('Clear data?'),
-                                        content: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text('You are about to clear all known servers and settings.\nPlease confirm this action'),
-                                          ],
-                                        ),
-                                        actions: [
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              FilledButton(
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  },
-                                                  style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
-                                                  child: Text(
-                                                    'Cancel',
-                                                    style: TextStyle(color: Theme.of(context).colorScheme.background),
-                                                  )
-                                              ),
-                                              FilledButton(
-                                                  onPressed: () async {
-                                                    engine.clearDB();
-                                                    engine.users.clear();
-                                                    engine.filtered.clear();
-                                                    engine.known.clear();
-                                                    engine.logins.clear();
-                                                    engine.globalPassword = "";
-                                                    engine.globeP.text = "";
-                                                    engine.launch();
-                                                    Navigator.pop(context);
-                                                  },
-                                                  child: const Text('Confirm')
-                                              ),
-                                            ],
+                                          Text(
+                                            "Proxy all apps traffic through SOCKS",
                                           )
                                         ],
                                       ),
-                                    );
-                                  },
-                                  style: ButtonStyle(
-                                      backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)
+                                      Switch(
+                                        thumbIcon: thumbIcon,
+                                        value: engine.isProxyUsed,
+                                        onChanged: (bool value) {
+                                            if(value){
+                                              engine.saveProxy();
+                                            }else{
+                                              setState(() {
+                                                engine.proxyStatus = "Disabled!";
+                                              });
+                                              HttpOverrides.global = CertificateOverride();
+                                            }
+                                            engine.isProxyUsed = value;
+                                            engine.saveToggle("isProxyUsed", value);
+                                        },
+                                      )
+                                    ],
                                   ),
-                                  child: Text(
-                                    'Erase',
-                                    style: TextStyle(color: Theme.of(context).colorScheme.background),
-                                  ))
-                            ],
+                                  engine.isProxyUsed
+                                      ? Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Padding(
+                                              padding: EdgeInsets.only(left:5, top: 10,bottom: 5, right: 5),
+                                              child: TextField(
+                                                controller: engine.proxyAddr,
+                                                onChanged: (value) {
+                                                  engine.saveProxy();
+                                                },
+                                                decoration: InputDecoration(
+                                                  prefixIcon: Icon(Icons.link_rounded),
+                                                  labelText: 'IP',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Padding(
+                                              padding: EdgeInsets.only(left:5, top: 10,bottom: 5, right: 5),
+                                              child: TextField(
+                                                controller: engine.proxyPort,
+                                                onChanged: (value) {
+                                                  engine.saveProxy();
+                                                },
+                                                decoration: InputDecoration(
+                                                  prefixIcon: Icon(Icons.link_rounded),
+                                                  labelText: 'Port',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Padding(
+                                              padding: EdgeInsets.only(left:5, top: 5,bottom: 5,right: 5),
+                                              child: TextField(
+                                                controller: engine.proxyUser,
+                                                onChanged: (value) {
+                                                  engine.saveProxy();
+                                                },
+                                                decoration: InputDecoration(
+                                                  prefixIcon: Icon(Icons.person_rounded),
+                                                  labelText: 'Login',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                              child: Padding(
+                                                padding: EdgeInsets.only(left:5, right:5, top: 5,bottom: 5),
+                                                child: TextField(
+                                                  controller: engine.proxyPassword,
+                                                  onChanged: (value) {
+                                                    engine.saveProxy();
+                                                  },
+                                                  decoration: InputDecoration(
+                                                    prefixIcon: Icon(Icons.password_rounded),
+                                                    labelText: 'Password',
+                                                    border: OutlineInputBorder(),
+                                                  ),
+                                                ),
+                                              )
+                                          ),
+                                        ],
+                                      ),
+                                      Card(
+                                        elevation: 10,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(15),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    engine.proxyStatus,
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                    ],
+                                  )
+                                      : Container()
+                                ],
+                              )
                           ),
                         ),
-                      ),
-                    ],
+                        Card(
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Erase database",
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                    ),
+                                    Text(
+                                      "If you have forgot your passkey",
+                                    )
+                                  ],
+                                ),
+                                FilledButton(
+                                    onPressed: () {
+                                      showDialog<String>(
+                                        context: context,
+                                        builder: (BuildContext context) => AlertDialog(
+                                          icon: Icon(Icons.delete_rounded),
+                                          title: const Text('Clear data?'),
+                                          content: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text('You are about to clear all known servers and settings.\nPlease confirm this action'),
+                                            ],
+                                          ),
+                                          actions: [
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                FilledButton(
+                                                    onPressed: () {
+                                                      Navigator.pop(context);
+                                                    },
+                                                    style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
+                                                    child: Text(
+                                                      'Cancel',
+                                                      style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                    )
+                                                ),
+                                                FilledButton(
+                                                    onPressed: () async {
+                                                      engine.clearDB();
+                                                      engine.users.clear();
+                                                      engine.filtered.clear();
+                                                      engine.known.clear();
+                                                      engine.logins.clear();
+                                                      engine.globalPassword = "";
+                                                      engine.globeP.text = "";
+                                                      engine.launch();
+                                                      Navigator.pop(context);
+                                                    },
+                                                    child: const Text('Confirm')
+                                                ),
+                                              ],
+                                            )
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    style: ButtonStyle(
+                                        backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)
+                                    ),
+                                    child: Text(
+                                      'Erase',
+                                      style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                    ))
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }

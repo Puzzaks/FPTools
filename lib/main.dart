@@ -35,7 +35,6 @@ class MyAppState extends State<MyApp> {
   void initState() {
     // SharedPreferences.setMockInitialValues({});
     WidgetsFlutterBinding.ensureInitialized();
-    HttpOverrides.global = MyHttpOverrides();
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Provider.of<fastEngine>(context, listen: false).launch();

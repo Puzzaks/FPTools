@@ -1,18 +1,32 @@
 
 import 'dart:io';
-
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-class MyHttpOverrides extends HttpOverrides{
-  final ipAddress = '141.98.164.163';
-  int port = 64874;
-  final credentials = HttpClientBasicCredentials('j8hkqMbw', 'Lr9q29Ri');
+class ProxyOverride extends HttpOverrides{
+  late Map proxy;
+  ProxyOverride({required this.proxy});
+  @override
+  HttpClient createHttpClient(SecurityContext? context){
+    HttpClient client = super.createHttpClient(context);
+    client.addProxyCredentials(
+          proxy["address"],
+          int.parse(proxy["port"]),
+          'main',
+          HttpClientBasicCredentials(
+              proxy["username"],
+              proxy["password"]
+          )
+      );
+    client.findProxy = ((uri) => 'PROXY ${proxy["address"]}:${proxy["port"]}');
+    client.badCertificateCallback = (X509Certificate cert, String host, int port)=> true;
+    return client;
+  }
+}
+class CertificateOverride extends HttpOverrides{
   @override
   HttpClient createHttpClient(SecurityContext? context){
     return super.createHttpClient(context)
-      ..addProxyCredentials(ipAddress, port, 'main', credentials)
-      ..findProxy = ((uri) => 'PROXY $ipAddress:$port')
       ..badCertificateCallback = (X509Certificate cert, String host, int port)=> true;
   }
 }
@@ -135,6 +149,19 @@ Future<bool> checkConnect(ip) async {
     final response = await http.head(Uri.https(endpoint));
     return response.statusCode == 200;
   } catch (_) {
+    return false;
+  }
+}
+Future<bool> pingProxy(address, creds) async {
+  try {
+    final response = await http.head(
+        Uri.http(address),
+        headers: {
+          "Proxy-Authorization": "Basic ${base64.encode(utf8.encode(creds))}"
+        }
+    );
+    return response.statusCode == 503;
+  } catch (e) {
     return false;
   }
 }

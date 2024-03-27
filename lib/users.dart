@@ -92,7 +92,7 @@ class UsersPageState extends State<UsersPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                width: scaffoldWidth,
+                                width: scaffoldWidth - 80,
                                 child: Text(
                                   "Unable to create user at ${engine.newbieDomains.toList()}. Try again.",
                                 ),
@@ -104,7 +104,7 @@ class UsersPageState extends State<UsersPage> {
                     ),
                   ) : Container(),
                   Container(
-                    height: engine.filtered.length == 0?null:scaffoldHeight - 66,
+                    height: engine.filtered.isEmpty?null:scaffoldHeight - (engine.newbieDomains.isEmpty?66:144) ,
                     child: engine.filtered.isNotEmpty
                         ? SingleChildScrollView(
                       scrollDirection: Axis.vertical,

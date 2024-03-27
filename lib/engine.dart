@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:encrypt/encrypt.dart';
 import 'package:crypto/crypto.dart';
@@ -119,7 +120,7 @@ class Translit {
   }
 }
 
-class fastEngine with material.ChangeNotifier{
+class fastEngine extends HttpOverrides with material.ChangeNotifier{
   material.TextEditingController userSearch = material.TextEditingController(
       text: ""
   );
@@ -136,6 +137,7 @@ class fastEngine with material.ChangeNotifier{
   List toUpdate = [];
   Map domainUsers = {};
   List domainNames = [];
+  List doubleDomains = [];
   List userDomains = [];
   List creationDomains = [];
   String action = "Loading...";
@@ -154,10 +156,6 @@ class fastEngine with material.ChangeNotifier{
   material.TextEditingController userL = material.TextEditingController(text: "");
   material.TextEditingController userP = material.TextEditingController();
 
-  material.TextEditingController proxyUser = material.TextEditingController();
-  material.TextEditingController proxyPassword = material.TextEditingController();
-  material.TextEditingController proxyAddr = material.TextEditingController();
-  material.TextEditingController proxyPort = material.TextEditingController();
 
 
   List userErrors = [];
@@ -169,7 +167,13 @@ class fastEngine with material.ChangeNotifier{
   bool loggedIn = false;
   String globalPassword = "";
 
-  bool isProxyUsed = true;
+  bool isProxyUsed = false;
+  Map proxy = {};
+  String proxyStatus = "Loading...";
+  material.TextEditingController proxyUser = material.TextEditingController();
+  material.TextEditingController proxyPassword = material.TextEditingController();
+  material.TextEditingController proxyAddr = material.TextEditingController();
+  material.TextEditingController proxyPort = material.TextEditingController();
 
   material.TextEditingController globeP = material.TextEditingController();
 
@@ -222,14 +226,50 @@ class fastEngine with material.ChangeNotifier{
   }
 
   Future <void> launch() async {
-    loading = true; action = "Loading saved data...";
+    loading = true; action = "Checking proxy...";
     notifyListeners();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if(prefs.containsKey("isProxyUsed")){
+      isProxyUsed = prefs.getBool("isProxyUsed")??false;
+    }
+    if(isProxyUsed){
+      proxyStatus = "Checking proxy...";
+      notifyListeners();
+      if(prefs.containsKey("proxy")){
+        String memProxy = "";
+        memProxy = await prefs.getString("proxy")??"";
+        proxy = jsonDecode(decrypt(Encrypted.fromBase64(memProxy)));
+        proxyStatus = "Pinging proxy...";
+        notifyListeners();
+        await pingProxy("${proxy["address"]}:${proxy["port"]}", "${proxy["username"]}:${proxy["password"]}").then((value) async {
+          proxyStatus = "Setting up proxy...";
+          notifyListeners();
+          if(value){
+            HttpOverrides.global = ProxyOverride(proxy: proxy);
+            proxyAddr.text = proxy["address"];
+            proxyPort.text = proxy["port"];
+            proxyUser.text = proxy["username"];
+            proxyPassword.text = proxy["password"];
+            proxyStatus = "Proxy connection established!";
+            notifyListeners();
+          }else{
+            proxyStatus = "Credentials incorrect";
+            notifyListeners();
+          }
+        });
+      }
+    }else {
+      proxyStatus = "Proxy is disabled.";
+      notifyListeners();
+      HttpOverrides.global = CertificateOverride();
+    }
+    action = "Loading saved data...";
+    notifyListeners();
     if(prefs.containsKey("displayUsers")){
       displayUsers = prefs.getBool("displayUsers")??true;
     }
     if(prefs.containsKey("allowDuplicates")){
-      allowDuplicates = prefs.getBool("allowDuplicates")??true;
+      allowDuplicates = prefs.getBool("allowDuplicates")??false;
     }
     if(prefs.containsKey("known")){
       String memKnown = "";
@@ -293,6 +333,7 @@ class fastEngine with material.ChangeNotifier{
   }
 
   Future deleteUser(user) async {
+    newbieDomains.clear();
     loading = true;
     action = "Deleting ${user["address"]}...";
     var userDomain = user["address"].replaceAll("${user["login"]}@", "");
@@ -350,6 +391,19 @@ class fastEngine with material.ChangeNotifier{
     notifyListeners();
     var pass = userP.text == ""?generateRandomString(12):userP.text;
     for(int a=0; a < userDomains.length;a++){
+      action = "Validating login on ${userDomains[a]["name"]}...";
+      notifyListeners();
+      if(userDomains[a].containsKey("data")){
+        await checkLogin(userDomains[a]["data"]["server"]).then((value){
+          action = "Renewed login on ${userDomains[a]["name"]}";
+          notifyListeners();
+        });
+      }else{
+        await checkLogin(userDomains[a]["server"]).then((value){
+          action = "Renewed login on ${userDomains[a]["name"]}";
+          notifyListeners();
+        });
+      }
       toUpdate.add(userDomains[a]["name"]);
       action = "Creating ${normUsername(userL.text)} on ${userDomains[a]["name"]}...";
       notifyListeners();
@@ -394,6 +448,10 @@ class fastEngine with material.ChangeNotifier{
             if(!availdomains.containsKey(ip)){
               availdomains[ip] = [];
             }
+            if(ip=="37.221.67.100"){
+              print(domain["data"]);
+              print(domainNames);
+            }
             if(!domainNames.contains(domain["data"][0]["name"])){
               availdomains[ip].add(domain);
               domainNames.add(domain["data"][0]["name"]);
@@ -407,8 +465,21 @@ class fastEngine with material.ChangeNotifier{
   }
 
   Future <String?> checkLogin(ip) async {
+    action = "Refreshing login on ${known[ip]["name"]}...";
+    // notifyListeners();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    if(DateTime.parse(logins[ip]["data"]["expire"]).difference(DateTime.now()).inMinutes < 1){
+    if(logins.containsKey(ip)) {
+      if(DateTime.parse(logins[ip]["data"]["expire"]).difference(DateTime.now()).inMinutes < 1){
+        await fastpanelLogin(ip, known[ip]["user"], known[ip]["pass"]).then((value) async {
+          availables[ip] = true;
+          if(value.containsKey("token")){
+            logins[ip] = value;
+            await prefs.setString("logins", encrypt(jsonEncode(logins)).base64);
+            notifyListeners();
+          }
+        });
+      }
+    }else{
       await fastpanelLogin(ip, known[ip]["user"], known[ip]["pass"]).then((value) async {
         availables[ip] = true;
         if(value.containsKey("token")){
@@ -460,6 +531,30 @@ class fastEngine with material.ChangeNotifier{
     notifyListeners();
     return true;
   }
+  Future<bool> saveProxy() async{
+    proxyStatus = "Checking proxy...";
+    notifyListeners();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await pingProxy("${proxyAddr.text}:${proxyPort.text}", "${proxyUser.text}:${proxyPassword.text}").then((value){
+      if(value){
+        proxyStatus = "Proxy updated!";
+        notifyListeners();
+        proxy["address"] = proxyAddr.text;
+        proxy["port"] = proxyPort.text;
+        proxy["username"] = proxyUser.text;
+        proxy["password"] = proxyPassword.text;
+        prefs.setString("proxy", encrypt(jsonEncode(proxy)).base64);
+        HttpOverrides.global = ProxyOverride(proxy: proxy);
+        notifyListeners();
+      }else{
+        proxyStatus = "Wrong proxy settings!";
+        notifyListeners();
+        HttpOverrides.global = CertificateOverride();
+      }
+    });
+    return true;
+  }
+
   Future <Map> filterUsers() async {
     loading = true;
     action = "Validating...";
@@ -551,9 +646,9 @@ class fastEngine with material.ChangeNotifier{
       for(int a=0; a<domains[keyVar].length;a++){
         if(toUpdate.isEmpty){
           if(logins.containsKey(keyVar)){
-            action = "Getting users from ${domains[keyVar][a]["name"]}...";
-            notifyListeners();
             await checkLogin(keyVar).then((huh) async {
+              action = "Getting users from ${domains[keyVar][a]["name"]}...";
+              notifyListeners();
               await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
                 domainUsers[domains[keyVar][a]["name"]] = value["data"];
               });
@@ -562,10 +657,10 @@ class fastEngine with material.ChangeNotifier{
         }else{
           if(toUpdate.contains(domains[keyVar][a]["name"])){
             if(logins.containsKey(keyVar)){
-              action = "Getting users from ${domains[keyVar][a]["name"]}...";
               toUpdate.remove(domains[keyVar][a]["name"]);
-              notifyListeners();
               await checkLogin(keyVar).then((huh) async {
+                action = "Getting users from ${domains[keyVar][a]["name"]}...";
+                notifyListeners();
                 await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
                   domainUsers[domains[keyVar][a]["name"]] = value["data"];
                 });
