@@ -7,6 +7,7 @@ import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:latinize/latinize.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 import 'network.dart';
 
 class Translit {
@@ -121,11 +122,28 @@ class Translit {
 }
 
 class fastEngine extends HttpOverrides with material.ChangeNotifier{
-  material.TextEditingController userSearch = material.TextEditingController(
-      text: ""
-  );
+  material.TextEditingController userSearch = material.TextEditingController(text: "");
+  material.TextEditingController serverSearch = material.TextEditingController(text: "");
+  material.TextEditingController labelSearch = material.TextEditingController(text: "");
   material.TextEditingController updatePassword = material.TextEditingController();
+  material.TextEditingController labelName = material.TextEditingController();
+  material.TextEditingController labelColor = material.TextEditingController();
+  material.TextEditingController tempL = material.TextEditingController();
+  material.TextEditingController tempA = material.TextEditingController();
+  material.TextEditingController tempU = material.TextEditingController();
+  material.TextEditingController tempP = material.TextEditingController();
+  material.TextEditingController userL = material.TextEditingController(text: "");
+  material.TextEditingController userP = material.TextEditingController();
+  material.TextEditingController proxyUser = material.TextEditingController();
+  material.TextEditingController proxyPassword = material.TextEditingController();
+  material.TextEditingController proxyAddr = material.TextEditingController();
+  material.TextEditingController proxyPort = material.TextEditingController();
+  material.TextEditingController globeP = material.TextEditingController();
+  material.TextEditingController voisoKeyUser = material.TextEditingController();
+  material.TextEditingController voisoKeyCenter = material.TextEditingController();
+  material.TextEditingController voisoCluster = material.TextEditingController();
   Map known = {};
+  Map displayKnown = {};
   List allUsers = [];
   Map logins = {};
   Map logs = {};
@@ -145,41 +163,28 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   bool loadOnLaunch = false;
   bool displayUsers = true;
   bool allowDuplicates = true;
-
+  List selectedUsers = [];
+  List selectedGroups = [];
   List newbieDomains = [];
-
-  material.TextEditingController tempL = material.TextEditingController();
-  material.TextEditingController tempA = material.TextEditingController();
-  material.TextEditingController tempU = material.TextEditingController();
-  material.TextEditingController tempP = material.TextEditingController();
-
-  material.TextEditingController userL = material.TextEditingController(text: "");
-  material.TextEditingController userP = material.TextEditingController();
-
-
-
   List userErrors = [];
   String userMessage = "Leave password field empty for random password";
-
   bool tempPanelAddReady = false;
   bool tempPanelAddloading = false;
-
   bool loggedIn = false;
   String globalPassword = "";
-
   bool isProxyUsed = false;
   Map proxy = {};
   String proxyStatus = "Loading...";
-  material.TextEditingController proxyUser = material.TextEditingController();
-  material.TextEditingController proxyPassword = material.TextEditingController();
-  material.TextEditingController proxyAddr = material.TextEditingController();
-  material.TextEditingController proxyPort = material.TextEditingController();
+  String voisoStatus = "";
+  bool voisoLoading = true;
+  bool emaisLoading = true;
+  bool domainsLoading = true;
+  List labels = [];
 
-  material.TextEditingController globeP = material.TextEditingController();
-
-
-  material.TextEditingController voisoKey = material.TextEditingController();
-
+  clearDB() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.clear();
+  }
   Future<bool> checkPassword(String password) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if(prefs.containsKey("globalPassword")){
@@ -194,29 +199,20 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     return false;
   }
-
   Future<void> setPassword (String password) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     globalPassword = md5.convert(utf8.encode(md5.convert(utf8.encode("$password-FPT")).toString())).toString();
     prefs.setString("globalPassword", globalPassword);
   }
-
-  clearDB() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.clear();
-  }
-
   String normUsername(username){
     return Translit().toTranslit(source: latinize(username.trim())).replaceAll(" ", ".").toLowerCase();
   }
-
   String decrypt(Encrypted encryptedData) {
     final key = Key.fromUtf8(globalPassword);
     final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
     final initVector = IV.fromUtf8(globalPassword.substring(0, 16));
     return encrypter.decrypt(encryptedData, iv: initVector);
   }
-
   Encrypted encrypt(String plainText) {
     final key = Key.fromUtf8(globalPassword);
     final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
@@ -224,9 +220,14 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     Encrypted encryptedData = encrypter.encrypt(plainText, iv: initVector);
     return encryptedData;
   }
-
-  Future <void> launch() async {
+  launch() async {
+    await WindowManager.instance.ensureInitialized();
+    windowManager.waitUntilReadyToShow().then((_) async {
+      await windowManager.setTitle("OneTool: $action");
+    });
     loading = true; action = "Checking proxy...";
+    await windowManager.setTitle("OneTool: $action");
+    ignite();
     notifyListeners();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if(prefs.containsKey("isProxyUsed")){
@@ -264,6 +265,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       HttpOverrides.global = CertificateOverride();
     }
     action = "Loading saved data...";
+    await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     if(prefs.containsKey("displayUsers")){
       displayUsers = prefs.getBool("displayUsers")??true;
@@ -274,32 +276,31 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     if(prefs.containsKey("known")){
       String memKnown = "";
       memKnown = await prefs.getString("known")??"";
-      try {
-        known = jsonDecode(memKnown);
-      } on FormatException catch (e) {
-        known = jsonDecode(decrypt(Encrypted.fromBase64(memKnown)));
-      }
+      known = jsonDecode(decrypt(Encrypted.fromBase64(memKnown)));
       if(prefs.containsKey("logins")){
         String memLogs = "";
         memLogs = await prefs.getString("logins")??"";
-        try {
-          logins = jsonDecode(memLogs);
-        } on FormatException catch (e) {
-          logins = jsonDecode(decrypt(Encrypted.fromBase64(memLogs)));
-        }
+        logins = jsonDecode(decrypt(Encrypted.fromBase64(memLogs)));
       }
       if(prefs.containsKey("domains")){
         String memDomains = "";
         memDomains = prefs.getString("domains")??"";
-        try {
-          domains = jsonDecode(memDomains);
-        } on FormatException catch (e) {
-          domains = jsonDecode(decrypt(Encrypted.fromBase64(memDomains)));
-        }
+        domains = jsonDecode(decrypt(Encrypted.fromBase64(memDomains)));
+      }
+      if(prefs.containsKey("domains")){
+        String memDomains = "";
+        memDomains = prefs.getString("domains")??"";
+        domains = jsonDecode(decrypt(Encrypted.fromBase64(memDomains)));
+      }
+      if(prefs.containsKey("labels")){
+        String memLabels = "";
+        memLabels = prefs.getString("labels")??"";
+        labels = jsonDecode(decrypt(Encrypted.fromBase64(memLabels)));
       }
       for(int i=0; i<known.length;i++){
         var keyVar = known[known.keys.toList()[i]]["addr"];
         action = "Checking connection to $keyVar...";
+        await windowManager.setTitle("OneTool: $action");
         notifyListeners();
         await checkConnect(keyVar).then((value) async {
           availables[keyVar] = value;
@@ -314,13 +315,17 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         var keyVar = known[known.keys.toList()[i]]["addr"];
         if(logins.containsKey(keyVar)){
           action = "Checking login with $keyVar...";
+          await windowManager.setTitle("OneTool: $action");
           notifyListeners();
           if(availables[keyVar]){
             checkLogin(keyVar);
           }
         }
       }
+      filterServers();
+      domainsLoading = false;
       action = "Loading users...";
+      await windowManager.setTitle("OneTool: $action");
       notifyListeners();
       await getAllUsers().then((value){
         filterUsers();
@@ -328,14 +333,15 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       loading = false;
       notifyListeners();
     }
+    emaisLoading = false;
     loading = false;
     notifyListeners();
   }
-
   Future deleteUser(user) async {
     newbieDomains.clear();
     loading = true;
     action = "Deleting ${user["address"]}...";
+    await windowManager.setTitle("OneTool: $action");
     var userDomain = user["address"].replaceAll("${user["login"]}@", "");
     toUpdate.add(userDomain);
     notifyListeners();
@@ -348,18 +354,20 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       }
     }
     await checkLogin(domainIP).then((value) async {
-      await fastpanelDeleteUser(user["id"], domainIP, logins[domainIP]["token"]).then((value){
+      await fastpanelDeleteUser(user["id"], domainIP, logins[domainIP]["token"]).then((value) async {
         loading = false;
         action = "User ${user["address"]} deleted.";
+        await windowManager.setTitle("OneTool: $action");
         notifyListeners();
+        filterUsers();
       });
     });
   }
-
   Future updateUser(user) async {
     loading = true;
     var pass = updatePassword.text == ""?generateRandomString(12):updatePassword.text;
     action = "Updating ${user["address"]}...";
+    await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     var userDomain = user["address"].replaceAll("${user["login"]}@", "");
     var domainIP = "";
@@ -371,41 +379,45 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       }
     }
     await checkLogin(domainIP).then((value) async {
-      await fastpanelUpdateUser(user["id"], pass, domainIP, logins[domainIP]["token"]).then((value){
+      await fastpanelUpdateUser(user["id"], pass, domainIP, logins[domainIP]["token"]).then((value) async {
         loading = false;
         action = "User ${user["address"]} updated.";
+        await windowManager.setTitle("OneTool: $action");
         notifyListeners();
       });
     });
   }
-
   String generateRandomString(int len) {
     var r = Random();
     const _chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
     return List.generate(len, (index) => _chars[r.nextInt(_chars.length)]).join();
   }
-
   Future createUser() async {
     loading = true;
     action = "Creating ${normUsername(userL.text)}...";
+    await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     var pass = userP.text == ""?generateRandomString(12):userP.text;
     for(int a=0; a < userDomains.length;a++){
       action = "Validating login on ${userDomains[a]["name"]}...";
+      await windowManager.setTitle("OneTool: $action");
       notifyListeners();
       if(userDomains[a].containsKey("data")){
-        await checkLogin(userDomains[a]["data"]["server"]).then((value){
+        await checkLogin(userDomains[a]["data"]["server"]).then((value) async {
           action = "Renewed login on ${userDomains[a]["name"]}";
+          await windowManager.setTitle("OneTool: $action");
           notifyListeners();
         });
       }else{
-        await checkLogin(userDomains[a]["server"]).then((value){
+        await checkLogin(userDomains[a]["server"]).then((value) async {
           action = "Renewed login on ${userDomains[a]["name"]}";
+          await windowManager.setTitle("OneTool: $action");
           notifyListeners();
         });
       }
       toUpdate.add(userDomains[a]["name"]);
       action = "Creating ${normUsername(userL.text)} on ${userDomains[a]["name"]}...";
+      await windowManager.setTitle("OneTool: $action");
       notifyListeners();
       await fastpanelCreateUser(
           userDomains[a]["id"],
@@ -415,12 +427,14 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
           logins[userDomains[a]["server"]]["token"]
       ).then((value) async {
         action = "Created ${normUsername(userL.text)} on ${userDomains[a]["name"]}.";
+        await windowManager.setTitle("OneTool: $action");
         notifyListeners();
       });
     }
     await getAllUsers().then((value) async {
       await filterUsers().then((value) async {
         action = "Created ${userL.text}.";
+        await windowManager.setTitle("OneTool: $action");
         loading = false;
         notifyListeners();
         await Clipboard.setData(ClipboardData(text: "${userDomains.length == 1 ? "${normUsername(userL.text)}@${userDomains[0]["name"]}" : normUsername(userL.text)}	$pass"));
@@ -432,12 +446,10 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       });
     });
   }
-
   Future saveToggle(String key, bool value) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setBool(key, value);
   }
-
   Future getDomains(ip) async{
     await checkLogin(ip);
     var out = [];
@@ -447,10 +459,6 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
           if(!domain["data"][0]["name"].contains("smtp.")){
             if(!availdomains.containsKey(ip)){
               availdomains[ip] = [];
-            }
-            if(ip=="37.221.67.100"){
-              print(domain["data"]);
-              print(domainNames);
             }
             if(!domainNames.contains(domain["data"][0]["name"])){
               availdomains[ip].add(domain);
@@ -463,29 +471,30 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     });
     return out;
   }
-
   Future <String?> checkLogin(ip) async {
-    action = "Refreshing login on ${known[ip]["name"]}...";
-    // notifyListeners();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if(logins.containsKey(ip)) {
       if(DateTime.parse(logins[ip]["data"]["expire"]).difference(DateTime.now()).inMinutes < 1){
         await fastpanelLogin(ip, known[ip]["user"], known[ip]["pass"]).then((value) async {
-          availables[ip] = true;
           if(value.containsKey("token")){
+            availables[ip] = true;
             logins[ip] = value;
             await prefs.setString("logins", encrypt(jsonEncode(logins)).base64);
             notifyListeners();
+          }else{
+            availables[ip] = false;
           }
         });
       }
     }else{
       await fastpanelLogin(ip, known[ip]["user"], known[ip]["pass"]).then((value) async {
-        availables[ip] = true;
         if(value.containsKey("token")){
+          availables[ip] = true;
           logins[ip] = value;
           await prefs.setString("logins", encrypt(jsonEncode(logins)).base64);
           notifyListeners();
+        }else{
+          availables[ip] = false;
         }
       });
     }
@@ -504,6 +513,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         await prefs.setString("logins", encrypt(jsonEncode(logins)).base64);
         notifyListeners();
       }else{
+        availables[tempA.text] = true;
         tempPanelAddloading = false;
         tempPanelAddReady = false;
         notifyListeners();
@@ -554,59 +564,67 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     });
     return true;
   }
-
   Future <Map> filterUsers() async {
     loading = true;
     action = "Validating...";
+    await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     loading = true;
     notifyListeners();
     filtered.clear();
     users.clear();
-    for(int i = 0; i < domainUsers.length;i++){
-      for(int b = 0; b < domainUsers[domainUsers.keys.toList()[i]].length;b++){
-        users.add(domainUsers[domainUsers.keys.toList()[i]][b]);
+    for (int i = 0; i < domainUsers.length; i++) {
+      if (domainUsers[domainUsers.keys.toList()[i]].isEmpty) {
+
+      }else{
+        for (int b = 0; b < domainUsers[domainUsers.keys.toList()[i]].length; b++) {
+          users.add(domainUsers[domainUsers.keys.toList()[i]][b]);
+        }
       }
     }
-    for(int i=0; i < users.length; i++){
-      if(!allUsers.contains(users[i]["login"])){
-        allUsers.add(users[i]["login"]);
-      }
-      if(users[i]["login"].contains(normUsername(userSearch.text))){
-        if(displayUsers){
-          if(filtered.length < 100){
-            if(!filtered.containsKey(users[i]["login"])){
-              filtered[users[i]["login"]] = [];
-            }
-            filtered[users[i]["login"]].add(users[i]);
-            for(int h = 0 ; h < filtered[users[i]["login"]].length ; h++){
-              if(newbieDomains.isNotEmpty){
-                if(newbieDomains.contains(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""))){
-                  newbieDomains.remove(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""));
-                }
+    if (selectedUsers.isNotEmpty && userSearch.text.isEmpty) {
+      filtered["Selected"] = selectedUsers;
+    }else{
+      for (int i = 0; i < users.length; i++) {
+        if (!allUsers.contains(users[i]["login"])) {
+          allUsers.add(users[i]["login"]);
+        }
+        if (users[i]["login"].contains(normUsername(userSearch.text))) {
+          if (displayUsers) {
+            if (filtered.length < 100) {
+              if (!filtered.containsKey(users[i]["login"])) {
+                filtered[users[i]["login"]] = [];
               }
-            }
-          }else{
-            if(filtered.containsKey(users[i]["login"])){
               filtered[users[i]["login"]].add(users[i]);
-              for(int h = 0 ; h < filtered[users[i]["login"]].length ; h++){
-                if(newbieDomains.isNotEmpty){
-                  if(newbieDomains.contains(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""))){
+              for (int h = 0; h < filtered[users[i]["login"]].length; h++) {
+                if (newbieDomains.isNotEmpty) {
+                  if (newbieDomains.contains(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""))) {
                     newbieDomains.remove(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""));
                   }
                 }
               }
+            } else {
+              if (filtered.containsKey(users[i]["login"])) {
+                filtered[users[i]["login"]].add(users[i]);
+                for (int h = 0; h < filtered[users[i]["login"]].length; h++) {
+                  if (newbieDomains.isNotEmpty) {
+                    if (newbieDomains.contains(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""))) {
+                      newbieDomains.remove(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""));
+                    }
+                  }
+                }
+              }
             }
-          }
-        }else {
-          if (!filtered.containsKey(users[i]["login"])) {
-            filtered[users[i]["login"]] = [];
-          }
-          filtered[users[i]["login"]].add(users[i]);
-          for(int h = 0 ; h < filtered[users[i]["login"]].length ; h++){
-            if(newbieDomains.isNotEmpty){
-              if(newbieDomains.contains(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""))){
-                newbieDomains.remove(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""));
+          } else {
+            if (!filtered.containsKey(users[i]["login"])) {
+              filtered[users[i]["login"]] = [];
+            }
+            filtered[users[i]["login"]].add(users[i]);
+            for (int h = 0; h < filtered[users[i]["login"]].length; h++) {
+              if (newbieDomains.isNotEmpty) {
+                if (newbieDomains.contains(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""))) {
+                  newbieDomains.remove(filtered[users[i]["login"]][h]["address"].replaceAll("${filtered[users[i]["login"]][h]["login"]}@", ""));
+                }
               }
             }
           }
@@ -614,13 +632,25 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       }
     }
     loading = false;
+    action = "Ready";
+    await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     return filtered;
   }
-
+  Future <Map> filterServers() async {
+    displayKnown.clear();
+    for (int i = 0; i < known.length; i++) {
+      if(known[known.keys.toList()[i]]["name"].toString().toLowerCase().contains(serverSearch.text.toLowerCase())){
+        displayKnown[known.keys.toList()[i]] = known[known.keys.toList()[i]];
+      }
+    }
+    notifyListeners();
+    return displayKnown;
+  }
   Future updateCachedUsers() async{
     loading = true;
     action = "Updating users...";
+    await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     users.clear();
     for(int i = 0; i < domainUsers.length;i++){
@@ -630,13 +660,14 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     loading = false;
     action = "Updated users!";
+    await windowManager.setTitle("OneTool: $action");
     notifyListeners();
   }
-
   Future<List> getAllUsers() async {
     users.clear();
     loading = true;
     action = "Loading users...";
+    await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     for(int i=0; i<known.length;i++){
       var keyVar = known[known.keys.toList()[i]]["addr"];
@@ -644,34 +675,43 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         domains[keyVar] = [];
       }
       for(int a=0; a<domains[keyVar].length;a++){
-        if(toUpdate.isEmpty){
-          if(logins.containsKey(keyVar)){
-            await checkLogin(keyVar).then((huh) async {
-              action = "Getting users from ${domains[keyVar][a]["name"]}...";
-              notifyListeners();
-              await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
-                domainUsers[domains[keyVar][a]["name"]] = value["data"];
-              });
-            });
-          }
-        }else{
-          if(toUpdate.contains(domains[keyVar][a]["name"])){
+        if(availables[keyVar]){
+          if(toUpdate.isEmpty){
             if(logins.containsKey(keyVar)){
-              toUpdate.remove(domains[keyVar][a]["name"]);
               await checkLogin(keyVar).then((huh) async {
                 action = "Getting users from ${domains[keyVar][a]["name"]}...";
+                await windowManager.setTitle("OneTool: $action");
                 notifyListeners();
-                await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
+                await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value) async {
                   domainUsers[domains[keyVar][a]["name"]] = value["data"];
+                  await filterUsers();
                 });
               });
             }
+          }else{
+            if(toUpdate.contains(domains[keyVar][a]["name"])){
+              if(logins.containsKey(keyVar)){
+                toUpdate.remove(domains[keyVar][a]["name"]);
+                await checkLogin(keyVar).then((huh) async {
+                  action = "Getting users from ${domains[keyVar][a]["name"]}...";
+                  await windowManager.setTitle("OneTool: $action");
+                  notifyListeners();
+                  await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
+                    domainUsers[domains[keyVar][a]["name"]] = value["data"];
+                    filterUsers();
+                  });
+                });
+              }
+            }
           }
+        }else{
+
         }
       }
     }
     toUpdate.clear();
-    action = "Got users.";
+    action = "Ready";
+    await windowManager.setTitle("OneTool: $action");
     loading = false;
     notifyListeners();
     return users;
@@ -679,6 +719,35 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   Future<bool> saveDomains() async{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString("domains", encrypt(jsonEncode(domains)).base64);
+    return true;
+  }
+
+  ignite() async {
+    voisoLoading = true;
+    voisoStatus = "Loading settings...";
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if(prefs.containsKey("voiso")) {
+      String voisoString = "";
+      voisoString = await prefs.getString("voiso") ?? "";
+      Map voisoKeys = jsonDecode(decrypt(Encrypted.fromBase64(voisoString)));
+      voisoCluster.text = voisoKeys["cluster"];
+      voisoKeyUser.text = voisoKeys["user"];
+      voisoKeyCenter.text = voisoKeys["center"];
+    }
+    // voisoLoading = false;
+    voisoStatus = "Loaded";
+  }
+  Future<bool> saveVoisoKeys() async{
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString("voiso", encrypt(
+        jsonEncode(
+            {
+              "cluster":voisoCluster.text,
+              "user":voisoKeyUser.text,
+              "center":voisoKeyCenter.text
+            }
+        )
+    ).base64);
     return true;
   }
 }

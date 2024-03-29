@@ -33,6 +33,12 @@ class UsersPageState extends State<UsersPage> {
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: Consumer<fastEngine>(builder: (context, engine, child) {
+          List unavailables = [];
+          for(int i=0;i<engine.availables.length;i++){
+            if(!engine.availables[engine.availables.keys.toList()[i]]){
+              unavailables.add(engine.availables.keys.toList()[i]);
+            }
+          }
           return LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
             double scaffoldHeight = constraints.maxHeight;
             double scaffoldWidth = constraints.maxWidth;
@@ -74,13 +80,32 @@ class UsersPageState extends State<UsersPage> {
                         engine.filterUsers();
                       },
                       decoration: InputDecoration(
+                        suffixIcon: Padding(
+                          padding: EdgeInsets.only(right: 5),
+                          child: engine.selectedUsers.isNotEmpty
+                              ? FilledButton(
+                                onPressed: (){
+                                  engine.userSearch.clear();
+                                  engine.filterUsers();
+                                },
+                                child: Text("Show ${engine.selectedUsers.length} selected"),
+                              )
+                              : engine.userSearch.text.isNotEmpty
+                              ? IconButton(
+                              onPressed: () {
+                                engine.userSearch.clear();
+                                engine.filterUsers();
+                              },
+                              icon: Icon(Icons.clear_rounded)
+                          ) : null,
+                        ),
                         prefixIcon: Icon(Icons.search_rounded),
                         labelText: 'Search users',
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
                       ),
                     ),
                   ),
-                  engine.newbieDomains.isNotEmpty ? Card(
+                  (engine.newbieDomains.isNotEmpty) ? Card(
                     elevation: 2,
                     child: Padding(
                       padding: const EdgeInsets.all(15),
@@ -94,7 +119,7 @@ class UsersPageState extends State<UsersPage> {
                               Container(
                                 width: scaffoldWidth - 80,
                                 child: Text(
-                                  "Unable to create user at ${engine.newbieDomains.toList()}. Try again.",
+                                  "User not found on ${engine.newbieDomains.map((e){return "$e";})}.${engine.action=="Ready"?"":" Updating now..."}",
                                 ),
                               )
                             ],
@@ -103,8 +128,33 @@ class UsersPageState extends State<UsersPage> {
                       ),
                     ),
                   ) : Container(),
+                  unavailables.isNotEmpty ? Card(
+                        color: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.errorContainer),
+                        elevation: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(15),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Padding(padding: EdgeInsets.only(right: 10), child: Icon(Icons.warning_rounded)),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: scaffoldWidth - 80,
+                                    child: Text(
+                                      "${unavailables.length==1?"Domain is unavailable: ${engine.known[unavailables[0]]["name"]}":"Some domains are not available: ${unavailables.map((e){return "$e";})}"}.",
+                                    ),
+                                  )
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ) : Container(),
+
                   Container(
-                    height: engine.filtered.isEmpty?null:scaffoldHeight - (engine.newbieDomains.isEmpty?66:144) ,
+                    height: engine.filtered.isEmpty?null:scaffoldHeight - (engine.newbieDomains.isEmpty?unavailables.isNotEmpty?128:66:unavailables.isNotEmpty?206:144) ,
                     child: engine.filtered.isNotEmpty
                         ? SingleChildScrollView(
                       scrollDirection: Axis.vertical,
@@ -133,9 +183,31 @@ class UsersPageState extends State<UsersPage> {
                                             title: Row(
                                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
-                                                Text(
-                                                  "${engine.filtered[login][0]["login"]} • ${engine.filtered[login].length} domains",
-                                                  style: TextStyle(fontSize: 16),
+                                                Row(
+                                                  children: [
+                                                    IconButton(
+                                                        onPressed: () {
+                                                          if(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty){
+                                                            engine.selectedUsers.clear();
+                                                            engine.filterUsers();
+                                                          }else{
+                                                            for(int i=0;i < accounts.length; i++){
+                                                              if(!engine.selectedUsers.contains(accounts[i])){
+                                                                engine.selectedUsers.add(accounts[i]);
+                                                              }
+                                                            }
+                                                            engine.filterUsers();
+                                                          }
+                                                        },
+                                                        icon: (engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)
+                                                          ? Icon(Icons.deselect_rounded)
+                                                          : Icon(Icons.select_all_rounded)
+                                                    ),
+                                                    Text(
+                                                      "${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)? "Selected":engine.filtered[login][0]["login"]}${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)?"":" • ${engine.filtered[login].length} domains"}${engine.selectedUsers.isNotEmpty?" • ${engine.selectedUsers.length} ${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)?"total":"selected"}":""}",
+                                                      style: TextStyle(fontSize: 16),
+                                                    ),
+                                                  ],
                                                 ),
                                                 Row(
                                                   children: [
@@ -214,12 +286,17 @@ class UsersPageState extends State<UsersPage> {
                                                             crossAxisAlignment: CrossAxisAlignment.start,
                                                             mainAxisSize: MainAxisSize.min,
                                                             children: [
-                                                              Text('You are about to delete following accounts:'),
-                                                              Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: accounts.map((account) {
-                                                                  return Text(" • ${account["address"]}");
-                                                                }).toList(),
+                                                              Text('You are about to delete ${accounts.length} accounts:'),
+                                                              Container(
+                                                                constraints: BoxConstraints(maxHeight: 120),
+                                                                child: SingleChildScrollView(
+                                                                  child: Column(
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                    children: accounts.map((account) {
+                                                                      return Text(" • ${account["address"]}");
+                                                                    }).toList(),
+                                                                  ),
+                                                                ),
                                                               ),
                                                               Text('Confirm deletion please.'),
                                                             ],
@@ -242,16 +319,16 @@ class UsersPageState extends State<UsersPage> {
                                                                     onPressed: () async {
                                                                       Navigator.pop(context);
                                                                       for(int i = 0; i<accounts.length;i++){
-                                                                        engine.toUpdate.add(accounts[i]["address"].replaceAll("${accounts[i]["login"]}@", ""));
                                                                         await engine.deleteUser(accounts[i]).then((value) async {
-
                                                                         });
                                                                       }
                                                                       await engine.getAllUsers().then((value) async {
+                                                                        await engine.filterUsers().then((value) async {
 
+                                                                        });
                                                                       });
-                                                                      await engine.filterUsers().then((value) async {
-                                                                      });
+                                                                      engine.selectedUsers.clear();
+                                                                      engine.filterUsers();
                                                                     },
                                                                     child: const Text('Confirm')
                                                                 ),
@@ -277,11 +354,32 @@ class UsersPageState extends State<UsersPage> {
                                                   child: Row(
                                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                     children: [
-                                                      Text(
-                                                        account["address"],
-                                                        style: TextStyle(fontSize: 16),
-                                                      ),
                                                       Row(
+                                                        children: [
+                                                          Padding(
+                                                            padding: EdgeInsets.only(right: 5,top:4,bottom:4),
+                                                            child: Checkbox(
+                                                              value: engine.selectedUsers.contains(account),
+                                                              onChanged: (value) {
+                                                                setState(() {
+                                                                  if(engine.selectedUsers.contains(account)){
+                                                                    engine.selectedUsers.remove(account);
+                                                                  }else{
+                                                                    engine.selectedUsers.add(account);
+                                                                  }
+                                                                });
+                                                                if(engine.selectedUsers.isEmpty){engine.filterUsers();}
+                                                              },
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            account["address"],
+                                                            style: TextStyle(fontSize: 16),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      engine.selectedUsers.isEmpty
+                                                          ? Row(
                                                         children: [
                                                           IconButton(
                                                               onPressed: () async {
@@ -385,7 +483,7 @@ class UsersPageState extends State<UsersPage> {
                                                             );
                                                           }, icon: Icon(Icons.delete_rounded))
                                                         ],
-                                                      )
+                                                      ) : Container()
                                                     ],
                                                   ),
                                                 ),
@@ -395,11 +493,32 @@ class UsersPageState extends State<UsersPage> {
                                       : Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        "${engine.filtered[login][0]["login"]} • ${engine.filtered[login][0]["address"].replaceAll("${engine.filtered[login][0]["login"]}@", "")}",
-                                        style: TextStyle(fontSize: 16),
-                                      ),
                                       Row(
+                                        children: [
+                                          Padding(
+                                            padding: EdgeInsets.only(right: 5,top:4,bottom:4),
+                                            child: Checkbox(
+                                              value: engine.selectedUsers.contains(engine.filtered[login][0]),
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  if(engine.selectedUsers.contains(engine.filtered[login][0])){
+                                                    engine.selectedUsers.remove(engine.filtered[login][0]);
+                                                  }else{
+                                                    engine.selectedUsers.add(engine.filtered[login][0]);
+                                                  }
+                                                });
+                                                if(engine.selectedUsers.isEmpty){engine.filterUsers();}
+                                              },
+                                            ),
+                                          ),
+                                          Text(
+                                            "${engine.filtered[login][0]["login"]} • ${engine.filtered[login][0]["address"].replaceAll("${engine.filtered[login][0]["login"]}@", "")}",
+                                            style: TextStyle(fontSize: 16),
+                                          ),
+                                        ],
+                                      ),
+                                      engine.selectedUsers.length < 2
+                                      ? Row(
                                         children: [
                                           IconButton(
                                               onPressed: () async {
@@ -502,7 +621,7 @@ class UsersPageState extends State<UsersPage> {
                                             );
                                           }, icon: Icon(Icons.delete_rounded))
                                         ],
-                                      )
+                                      ) : Container()
                                     ],
                                   ),
                                 ),
@@ -680,43 +799,57 @@ class NewUserPageState extends State<NewUserPage> {
                           child: SingleChildScrollView(
                             child: Builder(
                                 builder: (context) {
+                                  List chips = engine.creationDomains..sort((a, b) => a["name"].compareTo(b["name"]));
                                   return Wrap(
                                     spacing: 5,
                                     runSpacing: 5,
-                                    children: engine.creationDomains.map((crD) {
-                                      return GestureDetector(
-                                        onTap: () {
-                                          if(engine.userDomains.contains(crD)){
-                                            engine.toUpdate.remove(crD["name"]);
-                                            engine.userDomains.remove(crD);
-                                          }else{
-                                            engine.toUpdate.add(crD["name"]);
-                                            engine.userDomains.add(crD);
-                                          }
-                                          if(engine.userDomains.isEmpty){
-                                            engine.userErrors.add("No domains selected");
-                                          }else{
-                                            engine.userErrors.remove("No domains selected");
-                                          }
-                                          setState(() {});
-                                        },
-                                        child: Chip(
-                                          backgroundColor: engine.userDomains.contains(crD)
-                                              ? Theme.of(context).colorScheme.primary
-                                              : null,
+                                    children: chips.map((crD) {
+                                      if(engine.availables[crD["server"]]){
+                                        return GestureDetector(
+                                          onTap: () {
+                                            if(engine.userDomains.contains(crD)){
+                                              engine.toUpdate.remove(crD["name"]);
+                                              engine.userDomains.remove(crD);
+                                            }else{
+                                              engine.toUpdate.add(crD["name"]);
+                                              engine.userDomains.add(crD);
+                                            }
+                                            if(engine.userDomains.isEmpty){
+                                              engine.userErrors.add("No domains selected");
+                                            }else{
+                                              engine.userErrors.remove("No domains selected");
+                                            }
+                                            setState(() {});
+                                          },
+                                          child: Chip(
+                                            backgroundColor: engine.userDomains.contains(crD)
+                                                ? Theme.of(context).colorScheme.primary
+                                                : null,
+                                            label: Text(
+                                              "${crD["name"]}",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w400,
+                                                color: engine.userDomains.contains(crD)
+                                                    ? Theme.of(context).colorScheme.background
+                                                    : Colors.grey,
+                                              ),
+                                            ),
+                                            elevation: 5.0,
+                                          ),
+                                        );
+                                      }else{
+                                        return Chip(
+                                          backgroundColor: Theme.of(context).colorScheme.errorContainer,
                                           label: Text(
                                             "${crD["name"]}",
                                             style: TextStyle(
-                                              fontWeight:
-                                              engine.userDomains.contains(crD) ? FontWeight.w600 : FontWeight.w400,
-                                              color: engine.userDomains.contains(crD)
-                                                  ? Theme.of(context).colorScheme.background
-                                                  : Colors.grey,
+                                              fontWeight: FontWeight.w400,
+                                              color: Colors.grey
                                             ),
                                           ),
                                           elevation: 5.0,
-                                        ),
-                                      );
+                                        );
+                                      }
                                     })
                                         .toList()
                                         .cast<Widget>(),

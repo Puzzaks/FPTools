@@ -7,14 +7,15 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:onetool/engine.dart';
 import 'agents.dart';
-import 'network.dart';
 import 'package:provider/provider.dart';
+
+import 'labels.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   if (Platform.isWindows) {
-    WindowManager.instance.setMinimumSize(const Size(600, 475));
+    WindowManager.instance.setMinimumSize(const Size(675, 475));
     // WindowManager.instance.setMaximumSize(const Size(775, 525));
   }
 
@@ -253,59 +254,33 @@ class MyAppState extends State<MyApp> {
                         )
                     )
                 )
-                :engine.loading ?
-                Center(
-                  child: Container(
-                    height: 85,
-                    width: 450,
-                    child: Card(
-                      elevation: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.all(15),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Loading...",
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                ),
-                                Text(
-                                  engine.action,
-                                )
-                              ],
-                            ),
-                            CircularProgressIndicator(
-                              backgroundColor: Colors.transparent,
-                              color: Theme.of(context).colorScheme.primary,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ) :
-                Row(
+                : Row(
                   children: [
                     NavigationRail(
                       elevation: 5,
                       extended: false,
-                      destinations: const [
+                      destinations: [
                         NavigationRailDestination(
+                          disabled: engine.domainsLoading,
                           label: Text("Users", style: TextStyle(fontSize: 18)),
                           icon: Icon(Icons.person_rounded),
                         ),
                         NavigationRailDestination(
+                          disabled: engine.domainsLoading,
                           label: Text("Servers", style: TextStyle(fontSize: 18)),
                           icon: Icon(Icons.dns_rounded),
                         ),
                         NavigationRailDestination(
+                          label: Text("Labels", style: TextStyle(fontSize: 18)),
+                          icon: Icon(Icons.label_rounded),
+                        ),
+                        NavigationRailDestination(
+                          disabled: engine.voisoLoading,
                           label: Text("Voiso Users", style: TextStyle(fontSize: 18)),
                           icon: Icon(Icons.dialer_sip_rounded),
                         ),
                         NavigationRailDestination(
+                          padding: EdgeInsets.only(top: scaffoldHeight - 235),
                           label: Text("Settings", style: TextStyle(fontSize: 18)),
                           icon: Icon(Icons.settings_rounded),
                         ),
@@ -327,9 +302,9 @@ class MyAppState extends State<MyApp> {
                           switch (screenIndex) {
                             case 0: return UsersPage(); // FastPanel Mailboxes
                             case 1: return ServersPage(); // FastPanel Instances
-                            case 2: return AgentsPage(); // Voiso Agents
-                            case 3: return SettingsPage(); // App Settings
-                            default: return Container();
+                            case 2: return LabelsPage(); // FastPanel Instances
+                            case 3: return AgentsPage(); // Voiso Agents
+                            default: return SettingsPage(); // App Settings
                           }
                         },
                       ),

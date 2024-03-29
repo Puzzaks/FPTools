@@ -55,12 +55,37 @@ class ServersPageState extends State<ServersPage> {
                 body: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
+                    Padding(
+                      padding: EdgeInsets.all(5),
+                      child: TextField(
+                        controller: engine.serverSearch,
+                        onChanged: (value) {
+                          engine.filterServers();
+                        },
+                        decoration: InputDecoration(
+                          suffixIcon: Padding(
+                            padding: EdgeInsets.only(right: 5),
+                            child: engine.serverSearch.text.isNotEmpty
+                                ? IconButton(
+                                onPressed: () {
+                                  engine.serverSearch.clear();
+                                  engine.filterServers();
+                                },
+                                icon: Icon(Icons.clear_rounded)
+                            ) : null,
+                          ),
+                          prefixIcon: Icon(Icons.search_rounded),
+                          labelText: 'Search servers',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
+                        ),
+                      ),
+                    ),
                     Container(
-                        height: scaffoldHeight,
+                        height: scaffoldHeight - 66,
                         child: SingleChildScrollView(
                           scrollDirection: Axis.vertical,
                           child: Column(
-                              children: engine.known.keys.map((server) {
+                              children: engine.displayKnown.keys.map((server) {
                                 return Card(
                                   elevation: 2,
                                   child: Padding(
@@ -116,7 +141,6 @@ class ServersPageState extends State<ServersPage> {
                                                 if (!engine.domains.containsKey(server)) {
                                                   engine.domains[server] = [];
                                                 }
-
                                                 return SingleChildScrollView(
                                                   scrollDirection: Axis.horizontal,
                                                   child: Padding(

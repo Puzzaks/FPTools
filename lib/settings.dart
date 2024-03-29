@@ -52,6 +52,33 @@ class SettingsPageState extends State<SettingsPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
+                        engine.loading?Card(
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Loading...",
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                    ),
+                                    Text(
+                                      engine.action,
+                                    )
+                                  ],
+                                ),
+                                CircularProgressIndicator(
+                                  backgroundColor: Colors.transparent,
+                                  color: Theme.of(context).colorScheme.primary,
+                                )
+                              ],
+                            ),
+                          ),
+                        ):Container(), // Loading
                         Card(
                           elevation: 2,
                           child: Padding(
@@ -85,7 +112,7 @@ class SettingsPageState extends State<SettingsPage> {
                               ],
                             ),
                           ),
-                        ),
+                        ), // Less Users
                         Card(
                           elevation: 2,
                           child: Padding(
@@ -119,7 +146,7 @@ class SettingsPageState extends State<SettingsPage> {
                               ],
                             ),
                           ),
-                        ),
+                        ), // Duplicates
                         Card(
                           elevation: 2,
                           child: Padding(
@@ -145,16 +172,16 @@ class SettingsPageState extends State<SettingsPage> {
                                         thumbIcon: thumbIcon,
                                         value: engine.isProxyUsed,
                                         onChanged: (bool value) {
-                                            if(value){
-                                              engine.saveProxy();
-                                            }else{
-                                              setState(() {
-                                                engine.proxyStatus = "Disabled!";
-                                              });
-                                              HttpOverrides.global = CertificateOverride();
-                                            }
-                                            engine.isProxyUsed = value;
-                                            engine.saveToggle("isProxyUsed", value);
+                                          if(value){
+                                            engine.saveProxy();
+                                          }else{
+                                            setState(() {
+                                              engine.proxyStatus = "Disabled!";
+                                            });
+                                            HttpOverrides.global = CertificateOverride();
+                                          }
+                                          engine.isProxyUsed = value;
+                                          engine.saveToggle("isProxyUsed", value);
                                         },
                                       )
                                     ],
@@ -259,7 +286,83 @@ class SettingsPageState extends State<SettingsPage> {
                                 ],
                               )
                           ),
-                        ),
+                        ), // Proxy
+                        Card(
+                          elevation: 2,
+                          child: Padding(
+                              padding: const EdgeInsets.all(15),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Voiso Settings",
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                          ),
+                                          Text(
+                                            "Enter credentials for Voiso",
+                                          )
+                                        ],
+                                      ),
+                                      Container(
+                                        width: 200,
+                                        child: Padding(
+                                          padding: EdgeInsets.only(left:5,bottom: 5),
+                                          child: TextField(
+                                            controller: engine.voisoCluster,
+                                            onChanged: (value) {
+                                              engine.saveVoisoKeys();
+                                            },
+                                            decoration: InputDecoration(
+                                              prefixIcon: Icon(Icons.dashboard),
+                                              labelText: 'Cluster ID',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 5,bottom: 5,),
+                                        child: TextField(
+                                          controller: engine.voisoKeyUser,
+                                          onChanged: (value) {
+                                            engine.saveVoisoKeys();
+                                          },
+                                          decoration: InputDecoration(
+                                            prefixIcon: Icon(Icons.person_rounded),
+                                            labelText: 'User Key',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 5,bottom: 5, ),
+                                        child: TextField(
+                                          controller: engine.voisoKeyCenter,
+                                          onChanged: (value) {
+                                            engine.saveVoisoKeys();
+                                          },
+                                          decoration: InputDecoration(
+                                            prefixIcon: Icon(Icons.corporate_fare_rounded),
+                                            labelText: 'Center Key',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              )
+                          ),
+                        ), // Voiso
                         Card(
                           elevation: 2,
                           child: Padding(
@@ -337,7 +440,7 @@ class SettingsPageState extends State<SettingsPage> {
                               ],
                             ),
                           ),
-                        ),
+                        ), // Erase
                       ],
                     ),
                   ),
