@@ -127,7 +127,6 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   material.TextEditingController labelSearch = material.TextEditingController(text: "");
   material.TextEditingController updatePassword = material.TextEditingController();
   material.TextEditingController labelName = material.TextEditingController();
-  material.TextEditingController labelColor = material.TextEditingController();
   material.TextEditingController tempL = material.TextEditingController();
   material.TextEditingController tempA = material.TextEditingController();
   material.TextEditingController tempU = material.TextEditingController();
@@ -146,7 +145,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   Map displayKnown = {};
   List allUsers = [];
   Map logins = {};
-  Map logs = {};
+  List logs = [];
   Map availables = {};
   List users = [];
   Map filtered = {};
@@ -179,11 +178,32 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   bool voisoLoading = true;
   bool emaisLoading = true;
   bool domainsLoading = true;
-  List labels = [];
+  Map labels = {};
+  List labelDomains = [];
+  Map tempLabel = {};
+  Map glowDomains = {};
+  List selectedLabels = [];
+  bool multiUserCreate = false;
+  late material.BuildContext defaultContext;
 
   clearDB() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.clear();
+  }
+  String decrypt(Encrypted encryptedData) {
+    final key = Key.fromUtf8(globalPassword);
+    final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+    final initVector = IV.fromUtf8(globalPassword.substring(0, 16));
+    return encrypter.decrypt(encryptedData, iv: initVector);
+  }
+  Encrypted encrypt(String plainText) {
+    final key = Key.fromUtf8(globalPassword);
+    final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+    print(globalPassword.length);
+    String pwd = globalPassword.substring(0, 16);
+    final initVector = IV.fromUtf8(pwd);
+    Encrypted encryptedData = encrypter.encrypt(plainText, iv: initVector);
+    return encryptedData;
   }
   Future<bool> checkPassword(String password) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -204,21 +224,20 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     globalPassword = md5.convert(utf8.encode(md5.convert(utf8.encode("$password-FPT")).toString())).toString();
     prefs.setString("globalPassword", globalPassword);
   }
+  Future <void> logAdd (log, type, thread, bool isArray) async{
+    // final SharedPreferences prefs = await SharedPreferences.getInstance();
+    logs.add({
+      "time": DateTime.now().millisecondsSinceEpoch,
+      "log": log,
+      "array": isArray,
+      "thread": thread,
+      "type": type
+    });
+    notifyListeners();
+    // await prefs.setString("logs", encrypt(jsonEncode(logs)).base64);
+  }
   String normUsername(username){
-    return Translit().toTranslit(source: latinize(username.trim())).replaceAll(" ", ".").toLowerCase();
-  }
-  String decrypt(Encrypted encryptedData) {
-    final key = Key.fromUtf8(globalPassword);
-    final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
-    final initVector = IV.fromUtf8(globalPassword.substring(0, 16));
-    return encrypter.decrypt(encryptedData, iv: initVector);
-  }
-  Encrypted encrypt(String plainText) {
-    final key = Key.fromUtf8(globalPassword);
-    final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
-    final initVector = IV.fromUtf8(globalPassword.substring(0, 16));
-    Encrypted encryptedData = encrypter.encrypt(plainText, iv: initVector);
-    return encryptedData;
+    return Translit().toTranslit(source: latinize(username.replaceAll("\r", "").replaceAll("\n", "").replaceAll("	", "").trim())).replaceAll(" ", ".").toLowerCase();
   }
   launch() async {
     await WindowManager.instance.ensureInitialized();
@@ -230,6 +249,12 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     ignite();
     notifyListeners();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    // if(prefs.containsKey("logs")){
+    //   String memLogs = "";
+    //   memLogs = await prefs.getString("logs")??"";
+    //   logs = jsonDecode(decrypt(Encrypted.fromBase64(memLogs)));
+    // }
+    logAdd(action, "info", "startup", false);
     if(prefs.containsKey("isProxyUsed")){
       isProxyUsed = prefs.getBool("isProxyUsed")??false;
     }
@@ -265,6 +290,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       HttpOverrides.global = CertificateOverride();
     }
     action = "Loading saved data...";
+    logAdd(action, "info", "startup", false);
     await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     if(prefs.containsKey("displayUsers")){
@@ -287,11 +313,6 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         memDomains = prefs.getString("domains")??"";
         domains = jsonDecode(decrypt(Encrypted.fromBase64(memDomains)));
       }
-      if(prefs.containsKey("domains")){
-        String memDomains = "";
-        memDomains = prefs.getString("domains")??"";
-        domains = jsonDecode(decrypt(Encrypted.fromBase64(memDomains)));
-      }
       if(prefs.containsKey("labels")){
         String memLabels = "";
         memLabels = prefs.getString("labels")??"";
@@ -300,6 +321,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       for(int i=0; i<known.length;i++){
         var keyVar = known[known.keys.toList()[i]]["addr"];
         action = "Checking connection to $keyVar...";
+        logAdd(action, "info", "startup", false);
         await windowManager.setTitle("OneTool: $action");
         notifyListeners();
         await checkConnect(keyVar).then((value) async {
@@ -315,6 +337,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         var keyVar = known[known.keys.toList()[i]]["addr"];
         if(logins.containsKey(keyVar)){
           action = "Checking login with $keyVar...";
+          logAdd(action, "info", "startup", false);
           await windowManager.setTitle("OneTool: $action");
           notifyListeners();
           if(availables[keyVar]){
@@ -325,12 +348,12 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       filterServers();
       domainsLoading = false;
       action = "Loading users...";
+      logAdd(action, "info", "startup", false);
       await windowManager.setTitle("OneTool: $action");
       notifyListeners();
       await getAllUsers().then((value){
         filterUsers();
       });
-      loading = false;
       notifyListeners();
     }
     emaisLoading = false;
@@ -341,6 +364,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     newbieDomains.clear();
     loading = true;
     action = "Deleting ${user["address"]}...";
+    logAdd(action, "info", "deletion", false);
     await windowManager.setTitle("OneTool: $action");
     var userDomain = user["address"].replaceAll("${user["login"]}@", "");
     toUpdate.add(userDomain);
@@ -357,6 +381,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       await fastpanelDeleteUser(user["id"], domainIP, logins[domainIP]["token"]).then((value) async {
         loading = false;
         action = "User ${user["address"]} deleted.";
+        logAdd(action, "info", "deletion", false);
         await windowManager.setTitle("OneTool: $action");
         notifyListeners();
         filterUsers();
@@ -367,6 +392,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     loading = true;
     var pass = updatePassword.text == ""?generateRandomString(12):updatePassword.text;
     action = "Updating ${user["address"]}...";
+    logAdd(action, "info", "updating", false);
     await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     var userDomain = user["address"].replaceAll("${user["login"]}@", "");
@@ -382,6 +408,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       await fastpanelUpdateUser(user["id"], pass, domainIP, logins[domainIP]["token"]).then((value) async {
         loading = false;
         action = "User ${user["address"]} updated.";
+        logAdd(action, "info", "updating", false);
         await windowManager.setTitle("OneTool: $action");
         notifyListeners();
       });
@@ -395,56 +422,109 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   Future createUser() async {
     loading = true;
     action = "Creating ${normUsername(userL.text)}...";
+    logAdd(action, "info", "creation", false);
     await windowManager.setTitle("OneTool: $action");
     notifyListeners();
-    var pass = userP.text == ""?generateRandomString(12):userP.text;
-    for(int a=0; a < userDomains.length;a++){
-      action = "Validating login on ${userDomains[a]["name"]}...";
-      await windowManager.setTitle("OneTool: $action");
-      notifyListeners();
-      if(userDomains[a].containsKey("data")){
-        await checkLogin(userDomains[a]["data"]["server"]).then((value) async {
-          action = "Renewed login on ${userDomains[a]["name"]}";
-          await windowManager.setTitle("OneTool: $action");
-          notifyListeners();
-        });
-      }else{
-        await checkLogin(userDomains[a]["server"]).then((value) async {
-          action = "Renewed login on ${userDomains[a]["name"]}";
-          await windowManager.setTitle("OneTool: $action");
-          notifyListeners();
-        });
+      String pass = userP.text == ""?generateRandomString(12):userP.text;
+      String uname = normUsername(userL.text);
+      String multiUserCopy = "";
+      List multiUsers = [];
+      if(multiUserCreate){
+        for(int h=0; h<userL.text.split('\n').length;h++) {
+          pass = userL.text.contains("	")
+              ? userL.text.split('\n')[h].split("	")[1] == "" ? generateRandomString(12) : userL.text.split('\n')[h].split("	")[1]
+              : generateRandomString(12);
+          uname = userL.text.split('\n')[h].split("	")[0].replaceAll("\r", "");
+          multiUserCopy = "$multiUserCopy$uname	$pass\r";
+          multiUsers.add({"l":uname,"p":pass});
+        }
       }
-      toUpdate.add(userDomains[a]["name"]);
-      action = "Creating ${normUsername(userL.text)} on ${userDomains[a]["name"]}...";
-      await windowManager.setTitle("OneTool: $action");
-      notifyListeners();
-      await fastpanelCreateUser(
-          userDomains[a]["id"],
-          userDomains[a]["server"],
-          normUsername(userL.text),
-          pass,
-          logins[userDomains[a]["server"]]["token"]
-      ).then((value) async {
-        action = "Created ${normUsername(userL.text)} on ${userDomains[a]["name"]}.";
+      for(int a=0; a < userDomains.length;a++) {
+        action = "Validating login on ${userDomains[a]["name"]}...";
+        logAdd(action, "info", "login", false);
         await windowManager.setTitle("OneTool: $action");
         notifyListeners();
+        if (userDomains[a].containsKey("data")) {
+          await checkLogin(userDomains[a]["data"]["server"]).then((value) async {
+            action = "Renewed login on ${userDomains[a]["name"]}";
+            logAdd(action, "info", "creation", false);
+            await windowManager.setTitle("OneTool: $action");
+            notifyListeners();
+          });
+        } else {
+          await checkLogin(userDomains[a]["server"]).then((value) async {
+            action = "Renewed login on ${userDomains[a]["name"]}";
+            logAdd(action, "info", "login", false);
+            await windowManager.setTitle("OneTool: $action");
+            notifyListeners();
+          });
+        }
+        toUpdate.add(userDomains[a]["name"]);
+        if(multiUserCreate){
+          for(int h=0; h<multiUsers.length;h++) {
+            pass = multiUsers[h]["p"];
+            uname = multiUsers[h]["l"];
+            if (pass.length < 4) {
+              logAdd("User not created as login data is empty", "warn", "creation", false);
+              print("Empty line, ignored");
+            }else{
+              action = "Creating ${multiUserCreate?uname:normUsername(userL.text)} on ${userDomains[a]["name"]}...";
+              logAdd(action, "info", "creation", false);
+              await windowManager.setTitle("OneTool: $action");
+              notifyListeners();
+              await fastpanelCreateUser(
+                  userDomains[a]["id"],
+                  userDomains[a]["server"],
+                  uname,
+                  pass.replaceAll("\r", ""),
+                  logins[userDomains[a]["server"]]["token"]
+              ).then((value) async {
+                action = "Created ${multiUserCreate?uname:normUsername(userL.text)} on ${userDomains[a]["name"]}.";
+                logAdd(action, "info", "creation", false);
+                await windowManager.setTitle("OneTool: $action");
+                notifyListeners();
+              });
+            }
+          }
+        }else{
+          action = "Creating ${normUsername(userL.text)} on ${userDomains[a]["name"]}...";
+          logAdd(action, "info", "creation", false);
+          await windowManager.setTitle("OneTool: $action");
+          notifyListeners();
+          await fastpanelCreateUser(
+              userDomains[a]["id"],
+              userDomains[a]["server"],
+              uname,
+              pass,
+              logins[userDomains[a]["server"]]["token"]
+          ).then((value) async {
+            action = "Created ${normUsername(userL.text)} on ${userDomains[a]["name"]}.";
+            logAdd(action, "info", "creation", false);
+            await windowManager.setTitle("OneTool: $action");
+            notifyListeners();
+          });
+        }
+      }
+      await getAllUsers().then((value) async {
+        await filterUsers().then((value) async {
+          action = "Created ${userL.text}.";
+          logAdd(action, "info", "creation", false);
+          await windowManager.setTitle("OneTool: $action");
+          loading = false;
+          notifyListeners();
+          if(!multiUserCreate){
+            await Clipboard.setData(ClipboardData(text: "${userDomains.length == 1 ? "${normUsername(userL.text)}@${userDomains[0]["name"]}" : normUsername(userL.text)}	$pass"));
+            userSearch.text = uname;
+          }else{
+            await Clipboard.setData(ClipboardData(text: multiUserCopy));
+          }
+          userL.text = "";
+          userP.text = "";
+          filterUsers();
+          return pass;
+        });
       });
-    }
-    await getAllUsers().then((value) async {
-      await filterUsers().then((value) async {
-        action = "Created ${userL.text}.";
-        await windowManager.setTitle("OneTool: $action");
-        loading = false;
-        notifyListeners();
-        await Clipboard.setData(ClipboardData(text: "${userDomains.length == 1 ? "${normUsername(userL.text)}@${userDomains[0]["name"]}" : normUsername(userL.text)}	$pass"));
-        userSearch.text = userL.text;
-        userL.text = "";
-        userP.text = "";
-        filterUsers();
-        return pass;
-      });
-    });
+    return "WTF";
   }
   Future saveToggle(String key, bool value) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -528,17 +608,24 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       "user": tempU.text,
       "pass": tempP.text,
     };
+    known.remove(tempA.text);
     tempKnown.addAll(known);
     known = tempKnown;
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString("known", encrypt(jsonEncode(known)).base64);
+    filterServers();
+    return true;
+  }
+  Future<bool> saveLabels() async{
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString("labels", encrypt(jsonEncode(labels)).base64);
     notifyListeners();
     return true;
   }
   Future<bool> saveBrandList() async{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setString("known", encrypt(jsonEncode(known)).base64);
-    notifyListeners();
+    filterServers();
     return true;
   }
   Future<bool> saveProxy() async{
@@ -567,6 +654,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   Future <Map> filterUsers() async {
     loading = true;
     action = "Validating...";
+    logAdd(action, "info", "filtering", false);
     await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     loading = true;
@@ -650,6 +738,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   Future updateCachedUsers() async{
     loading = true;
     action = "Updating users...";
+    logAdd(action, "info", "filtering", false);
     await windowManager.setTitle("OneTool: $action");
     notifyListeners();
     users.clear();
@@ -660,6 +749,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     loading = false;
     action = "Updated users!";
+    logAdd(action, "info", "filtering", false);
     await windowManager.setTitle("OneTool: $action");
     notifyListeners();
   }
@@ -668,6 +758,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     loading = true;
     action = "Loading users...";
     await windowManager.setTitle("OneTool: $action");
+    logAdd(action, "info", "users", false);
     notifyListeners();
     for(int i=0; i<known.length;i++){
       var keyVar = known[known.keys.toList()[i]]["addr"];
@@ -679,7 +770,10 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
           if(toUpdate.isEmpty){
             if(logins.containsKey(keyVar)){
               await checkLogin(keyVar).then((huh) async {
+                loading = true;
+                notifyListeners();
                 action = "Getting users from ${domains[keyVar][a]["name"]}...";
+                logAdd(action, "info", "getting", false);
                 await windowManager.setTitle("OneTool: $action");
                 notifyListeners();
                 await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value) async {
@@ -694,6 +788,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
                 toUpdate.remove(domains[keyVar][a]["name"]);
                 await checkLogin(keyVar).then((huh) async {
                   action = "Getting users from ${domains[keyVar][a]["name"]}...";
+                  logAdd(action, "info", "getting", false);
                   await windowManager.setTitle("OneTool: $action");
                   notifyListeners();
                   await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
@@ -704,8 +799,6 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
               }
             }
           }
-        }else{
-
         }
       }
     }

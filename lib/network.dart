@@ -1,7 +1,11 @@
 
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:onetool/engine.dart';
+import 'package:provider/provider.dart';
 
 class ProxyOverride extends HttpOverrides{
   late Map proxy;
@@ -45,6 +49,7 @@ Future <Map> fastpanelLogin(ip, user, key) async {
       ),
       body: body
   );
+  fastEngine().logAdd(response.body, "info", "netlogin", true);
   return jsonDecode(response.body);
 }
 
@@ -58,6 +63,7 @@ Future fastpanelMailboxes(ip, domain, key) async {
       Uri.https(endpoint, method),
       headers: headers
   );
+  fastEngine().logAdd(response.body, "info", "netusers", true);
   return jsonDecode(response.body);
 }
 
@@ -71,6 +77,7 @@ Future<Map> fastpanelDeleteUser(id, ip, key) async {
       Uri.https(endpoint, method),
       headers: headers
   );
+  fastEngine().logAdd(response.body, "info", "netdelete", true);
   return jsonDecode(response.body);
 }
 
@@ -89,6 +96,7 @@ Future<Map> fastpanelUpdateUser(id, newpass, ip, key) async {
       body: body,
       headers: headers
   );
+  fastEngine().logAdd(response.body, "info", "netupdate", true);
   return jsonDecode(response.body);
 }
 
@@ -97,8 +105,8 @@ Future<Map> fastpanelCreateUser(id, ip, username, password, key) async {
     'Authorization': "Bearer $key",
   };
   Map data = {
-    'login': username,
-    'password': password
+    "login": "$username",
+    "password": "$password"
   };
   var body = json.encode(data);
   var endpoint = "$ip:8888";
@@ -110,6 +118,7 @@ Future<Map> fastpanelCreateUser(id, ip, username, password, key) async {
       body: body,
       headers: headers
   );
+  fastEngine().logAdd(response.body, "info", "netcreate", true);
   return jsonDecode(response.body);
 }
 
@@ -127,6 +136,7 @@ Future fastpanelSites(ip, key) async {
       Uri.https(endpoint, method, params),
       headers: headers
   );
+  fastEngine().logAdd(response.body, "info", "netsites", true);
   return jsonDecode(response.body);
 }
 
@@ -140,6 +150,7 @@ Future fastpanelDomains(ip, site, key) async {
       Uri.https(endpoint, method),
       headers: headers
   );
+  fastEngine().logAdd(response.body, "info", "netdomains", true);
   return jsonDecode(response.body);
 }
 
@@ -147,8 +158,10 @@ Future<bool> checkConnect(ip) async {
   var endpoint = "$ip:8888";
   try {
     final response = await http.head(Uri.https(endpoint));
+    fastEngine().logAdd("Pinged $ip (${response.statusCode})", "info", "ping", true);
     return response.statusCode == 200;
   } catch (_) {
+    fastEngine().logAdd("Pinged $ip (unavailable)", "warn", "ping", true);
     return false;
   }
 }
@@ -160,6 +173,7 @@ Future<bool> pingProxy(address, creds) async {
           "Proxy-Authorization": "Basic ${base64.encode(utf8.encode(creds))}"
         }
     );
+    await fastEngine().logAdd("Proxy returned ${response.statusCode}", "info", "ping", true);
     return response.statusCode == 503;
   } catch (e) {
     return false;

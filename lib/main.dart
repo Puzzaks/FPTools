@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:onetool/logs.dart';
 import 'package:onetool/servers.dart';
 import 'package:onetool/settings.dart';
 import 'package:onetool/users.dart';
@@ -60,6 +61,7 @@ class MyAppState extends State<MyApp> {
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: Consumer<fastEngine>(builder: (context, engine, child) {
+          engine.defaultContext = context;
           return LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
             double scaffoldHeight = constraints.maxHeight;
             double scaffoldWidth = constraints.maxWidth;
@@ -271,6 +273,7 @@ class MyAppState extends State<MyApp> {
                           icon: Icon(Icons.dns_rounded),
                         ),
                         NavigationRailDestination(
+                          disabled: engine.domainsLoading,
                           label: Text("Labels", style: TextStyle(fontSize: 18)),
                           icon: Icon(Icons.label_rounded),
                         ),
@@ -280,7 +283,12 @@ class MyAppState extends State<MyApp> {
                           icon: Icon(Icons.dialer_sip_rounded),
                         ),
                         NavigationRailDestination(
-                          padding: EdgeInsets.only(top: scaffoldHeight - 235),
+                          disabled: engine.domainsLoading,
+                          label: Text("Logs", style: TextStyle(fontSize: 18)),
+                          icon: Icon(Icons.history_rounded),
+                        ),
+                        NavigationRailDestination(
+                          padding: EdgeInsets.only(top: scaffoldHeight - 280),
                           label: Text("Settings", style: TextStyle(fontSize: 18)),
                           icon: Icon(Icons.settings_rounded),
                         ),
@@ -304,6 +312,7 @@ class MyAppState extends State<MyApp> {
                             case 1: return ServersPage(); // FastPanel Instances
                             case 2: return LabelsPage(); // FastPanel Instances
                             case 3: return AgentsPage(); // Voiso Agents
+                            case 4: return LogsPage(); // Logs
                             default: return SettingsPage(); // App Settings
                           }
                         },

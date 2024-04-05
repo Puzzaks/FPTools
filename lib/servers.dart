@@ -441,8 +441,11 @@ class NewServerPageState extends State<NewServerPage> {
                           FilledButton(
                               onPressed: (engine.tempA.text.isNotEmpty && engine.tempPanelAddReady && !engine.tempPanelAddloading)
                                   ? () async {
-                                await engine.saveBrand().then((value) {
-                                  Navigator.pop(topContext);
+                                await engine.saveBrand().then((value) async {
+
+                                  await engine.filterServers().then((e){
+                                    Navigator.pop(topContext);
+                                  });
                                 });
                               }
                                   : null,

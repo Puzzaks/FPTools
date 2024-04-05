@@ -15,7 +15,6 @@ class LabelsPageState extends State<LabelsPage> {
   void initState() {
     super.initState();
   }
-
   @override
   Widget build(BuildContext context) {
     final _defaultLightColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal);
@@ -46,6 +45,8 @@ class LabelsPageState extends State<LabelsPage> {
               floatingActionButton: FloatingActionButton(
                 onPressed: () {
                   engine.creationDomains.clear();
+                  engine.tempLabel.clear();
+                  engine.labelName.text = "";
                   for(int i=0;i<engine.domains.length;i++){
                     for(int a=0;a<engine.domains[engine.domains.keys.toList()[i]].length;a++){
                       var curDomain = engine.domains[engine.domains.keys.toList()[i]][a];
@@ -92,13 +93,72 @@ class LabelsPageState extends State<LabelsPage> {
                   ),
                   Container(
                     height: engine.labels.isEmpty?null:scaffoldHeight - 66,
-                    child: Column(
-                      children: [
-                        LinearProgressIndicator(
-                          backgroundColor: Colors.transparent,
-                          color: Theme.of(context).colorScheme.primary,
-                        )
-                      ],
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: Column(
+                          children: engine.labels.keys.toList().map((label) {
+                            return Card(
+                              elevation: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.all(15),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  label??"Error loading name",
+                                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                ),
+                                                Text(
+                                                  "${engine.labels[label]["domains"].length} domains",
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        FilledButton(
+                                            onPressed: () {
+                                              engine.creationDomains.clear();
+                                              for(int i=0;i<engine.domains.length;i++){
+                                                for(int a=0;a<engine.domains[engine.domains.keys.toList()[i]].length;a++){
+                                                  var curDomain = engine.domains[engine.domains.keys.toList()[i]][a];
+                                                  curDomain["server"] = engine.domains.keys.toList()[i];
+                                                  if(engine.known.containsKey(engine.domains.keys.toList()[i])){
+                                                    engine.creationDomains.add(curDomain);
+                                                  }
+                                                }
+                                              }
+                                              engine.labelName.text = label??"";
+                                              engine.tempLabel = engine.labels[label];
+                                              for(int i = 0; i < engine.labels[label]["domains"].length; i++){
+                                                if(!engine.tempLabel["domains"].contains(engine.labels[label]["domains"][i])){
+                                                  engine.tempLabel["domains"].add(engine.labels[label]["domains"][i]);
+                                                }
+                                              }
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(builder: (context) => EditLabelPage()),
+                                              );
+                                            },
+                                            child: Text(
+                                              'Edit',
+                                              style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                            )),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList()
+                      ),
                     ),
                   )
                 ],
@@ -115,17 +175,6 @@ class EditLabelPage extends StatefulWidget {
   const EditLabelPage({super.key});
   @override
   EditLabelPageState createState() => EditLabelPageState();
-}
-class HexColor extends Color {
-  static int _getColorFromHex(String hexColor) {
-    hexColor = hexColor.toUpperCase().replaceAll("#", "");
-    if (hexColor.length == 6) {
-      hexColor = "FF" + hexColor;
-    }
-    return int.parse(hexColor, radix: 16);
-  }
-
-  HexColor(final String hexColor) : super(_getColorFromHex(hexColor));
 }
 class EditLabelPageState extends State<EditLabelPage> {
   @override
@@ -173,7 +222,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                           Padding(
                             padding: EdgeInsets.all(10),
                             child: Text(
-                              "Add new label",
+                              engine.labels.containsKey(engine.labelName.text)?"Edit label":"Add new label",
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
                             ),
                           ),
@@ -185,7 +234,9 @@ class EditLabelPageState extends State<EditLabelPage> {
                                   child: TextField(
                                     controller: engine.labelName,
                                     onChanged: (value) {
-                                      // engine.filterUsers();
+                                      setState(() {
+                                        engine.tempLabel["name"] = value;
+                                      });
                                     },
                                     decoration: InputDecoration(
                                       suffixIcon: Padding(
@@ -193,7 +244,10 @@ class EditLabelPageState extends State<EditLabelPage> {
                                         child: engine.labelName.text.isNotEmpty
                                             ? IconButton(
                                             onPressed: () {
-                                              engine.labelName.clear();
+                                              setState(() {
+                                                engine.labelName.clear();
+                                                engine.tempLabel["name"] = "";
+                                              });
                                             },
                                             icon: Icon(Icons.clear_rounded)
                                         ) : null,
@@ -205,47 +259,19 @@ class EditLabelPageState extends State<EditLabelPage> {
                                   ),
                                 ),
                               ),
-                              Expanded(
-                                child: Padding(
-                                  padding: EdgeInsets.all(5),
-                                  child: TextField(
-                                    controller: engine.labelColor,
-                                    onChanged: (value) {
-                                      setState(() {
-
-                                      });
-                                    },
-                                    decoration: InputDecoration(
-                                      suffixIcon: Padding(
-                                        padding: EdgeInsets.only(right: 5),
-                                        child: engine.labelColor.text.isNotEmpty
-                                            ? IconButton(
-                                            onPressed: () {
-                                              engine.labelColor.clear();
-                                            },
-                                            icon: Icon(Icons.clear_rounded)
-                                        ) : null,
-                                      ),
-                                      prefixIcon: Icon(
-                                        Icons.palette_rounded,
-                                        color: isColor(engine.labelColor.text)?HexColor(engine.labelColor.text):null,
-                                      ),
-                                      labelText: 'Label color',
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: isColor(engine.labelColor.text)?HexColor(engine.labelColor.text):Colors.grey)),
-                                    ),
-                                  ),
-                                ),
-                              )
                             ],
                           ),
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                             child: Container(
-                              height: scaffoldHeight - 189,
+                              height: scaffoldHeight - (engine.labels.containsKey(engine.labelName.text)?259:189),
                               child: SingleChildScrollView(
                                 child: Builder(
                                     builder: (context) {
                                       List chips = engine.creationDomains..sort((a, b) => a["name"].compareTo(b["name"]));
+                                      if(!engine.tempLabel.containsKey("domains")){
+                                        engine.tempLabel["domains"] = [];
+                                      }
                                       return Wrap(
                                         spacing: 5,
                                         runSpacing: 5,
@@ -253,29 +279,22 @@ class EditLabelPageState extends State<EditLabelPage> {
                                           if(engine.availables[crD["server"]]){
                                             return GestureDetector(
                                               onTap: () {
-                                                if(engine.userDomains.contains(crD)){
-                                                  engine.toUpdate.remove(crD["name"]);
-                                                  engine.userDomains.remove(crD);
+                                                if(engine.tempLabel["domains"].contains(crD["name"])){
+                                                  engine.tempLabel["domains"].remove(crD["name"]);
                                                 }else{
-                                                  engine.toUpdate.add(crD["name"]);
-                                                  engine.userDomains.add(crD);
-                                                }
-                                                if(engine.userDomains.isEmpty){
-                                                  engine.userErrors.add("No domains selected");
-                                                }else{
-                                                  engine.userErrors.remove("No domains selected");
+                                                  engine.tempLabel["domains"].add(crD["name"]);
                                                 }
                                                 setState(() {});
                                               },
                                               child: Chip(
-                                                backgroundColor: engine.userDomains.contains(crD)
+                                                backgroundColor: engine.tempLabel["domains"].contains(crD["name"])
                                                     ? Theme.of(context).colorScheme.primary
                                                     : null,
                                                 label: Text(
                                                   "${crD["name"]}",
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w400,
-                                                    color: engine.userDomains.contains(crD)
+                                                    color: engine.tempLabel["domains"].contains(crD["name"])
                                                         ? Theme.of(context).colorScheme.background
                                                         : Colors.grey,
                                                   ),
@@ -307,6 +326,55 @@ class EditLabelPageState extends State<EditLabelPage> {
                           ),
                         ],
                       ),
+                      engine.labels.containsKey(engine.labelName.text)
+                          ? Card(
+                        elevation: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(15),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.only(right: 10),
+                                        child: Icon(Icons.dangerous_rounded),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Delete this label",
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  FilledButton(
+                                      onPressed: () {
+                                        engine.labels.remove(engine.labelName.text);
+                                        engine.saveLabels().then((value){
+                                          Navigator.pop(topContext);
+                                        });
+                                      },
+                                      style: ButtonStyle(
+                                          backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)
+                                      ),
+                                      child: Text(
+                                        'Delete',
+                                        style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                      )),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                          : Container(),
                       Padding(
                         padding: EdgeInsets.all(15),
                         child: Row(
@@ -323,9 +391,18 @@ class EditLabelPageState extends State<EditLabelPage> {
                                 )
                             ),
                             FilledButton(
-                                onPressed: null,
+                                onPressed: (engine.labelName.text.isNotEmpty)
+                                  ? (){
+                                  engine.labels[engine.labelName.text] = {
+                                    "name": engine.labelName.text,
+                                    "domains": engine.tempLabel["domains"]
+                                  };
+                                  engine.saveLabels().then((value){
+                                    Navigator.pop(topContext);
+                                  });
+                                } : null,
                                 child: Text(
-                                    "Create label"
+                                    "Save label"
                                 )
                             ),
                           ],

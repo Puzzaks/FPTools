@@ -43,9 +43,13 @@ class UsersPageState extends State<UsersPage> {
             double scaffoldHeight = constraints.maxHeight;
             double scaffoldWidth = constraints.maxWidth;
             return Scaffold(
-              floatingActionButton: FloatingActionButton(
+              floatingActionButton: !engine.domainsLoading
+                ? FloatingActionButton(
                 onPressed: () {
-                  engine.userDomains = [];
+                  engine.multiUserCreate = false;
+                  engine.glowDomains = {};
+                  engine.selectedLabels.clear();
+                  engine.userDomains.clear();
                   engine.userErrors = [];
                   engine.creationDomains = [];
                   engine.userL.text = "";
@@ -68,7 +72,7 @@ class UsersPageState extends State<UsersPage> {
                 },
                 tooltip: "Add user",
                 child: Icon(Icons.add_rounded),
-              ),
+              ):null,
               body: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
@@ -152,9 +156,35 @@ class UsersPageState extends State<UsersPage> {
                           ),
                         ),
                       ) : Container(),
-
+                  engine.loading?Card(
+                    elevation: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Loading...",
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                              Text(
+                                engine.action,
+                              )
+                            ],
+                          ),
+                          CircularProgressIndicator(
+                            backgroundColor: Colors.transparent,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        ],
+                      ),
+                    ),
+                  ):Container(),
                   Container(
-                    height: engine.filtered.isEmpty?null:scaffoldHeight - (engine.newbieDomains.isEmpty?unavailables.isNotEmpty?128:66:unavailables.isNotEmpty?206:144) ,
+                    height: engine.filtered.isEmpty?null:scaffoldHeight - (engine.newbieDomains.isEmpty?unavailables.isNotEmpty?128:66:unavailables.isNotEmpty?206:144) - (engine.loading?84:0),
                     child: engine.filtered.isNotEmpty
                         ? SingleChildScrollView(
                       scrollDirection: Axis.vertical,
@@ -200,8 +230,8 @@ class UsersPageState extends State<UsersPage> {
                                                           }
                                                         },
                                                         icon: (engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)
-                                                          ? Icon(Icons.deselect_rounded)
-                                                          : Icon(Icons.select_all_rounded)
+                                                          ? Icon(Icons.remove_done_rounded)
+                                                          : Icon(Icons.done_all_rounded)
                                                     ),
                                                     Text(
                                                       "${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)? "Selected":engine.filtered[login][0]["login"]}${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)?"":" • ${engine.filtered[login].length} domains"}${engine.selectedUsers.isNotEmpty?" • ${engine.selectedUsers.length} ${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)?"total":"selected"}":""}",
@@ -668,7 +698,6 @@ class UsersPageState extends State<UsersPage> {
     });
   }
 }
-
 class NewUserPage extends StatefulWidget {
   const NewUserPage({super.key});
   @override
@@ -680,7 +709,6 @@ class NewUserPageState extends State<NewUserPage> {
   void initState() {
     super.initState();
   }
-
   @override
   Widget build(BuildContext topContext) {
     final _defaultLightColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal);
@@ -720,34 +748,63 @@ class NewUserPageState extends State<NewUserPage> {
                       Row(
                         children: [
                           Expanded(
-                            child: Padding(
-                              padding: EdgeInsets.only(left:5, right: 5,bottom: 5),
-                              child: TextField(
-                                controller: engine.userL,
-                                onChanged: (value) {
-                                  if(value == engine.normUsername(value)){
-                                    engine.userMessage = "Leave password field empty for random password";
-                                  }else{
-                                    engine.userMessage = "User will be created as ${engine.normUsername(value)}";
-                                  }
-                                  if(engine.allUsers.contains(value) && engine.allowDuplicates){
-                                    engine.userErrors.add("This user already exists");
-                                  }else{
-                                    engine.userErrors.remove("This user already exists");
-                                  }
-                                  if(value == "" && engine.userL.text.isEmpty){
-                                    engine.userErrors.add("Enter valid username");
-                                  }else{
-                                    engine.userErrors.remove("Enter valid username");
-                                  }
-                                  setState(() {
+                            child: Container(
+                              height: 61,
+                              child: Padding(
+                                padding: EdgeInsets.only(left:5, right: 5,bottom: 5),
+                                child: TextField(
+                                  controller: engine.userL,
+                                  maxLines:null,
+                                  expands: false,
+                                  minLines: 1,
+                                  onChanged: (value) {
+                                    if(value == engine.normUsername(value)){
+                                      engine.userMessage = "Leave password field empty for random password";
+                                    }else{
+                                      engine.userMessage = "User will be created as ${engine.normUsername(value)}";
+                                    }
+                                    if(engine.allUsers.contains(value) && engine.allowDuplicates){
+                                      engine.userErrors.add("This user already exists");
+                                    }else{
+                                      engine.userErrors.remove("This user already exists");
+                                    }
+                                    if(value == "" && engine.userL.text.isEmpty){
+                                      engine.userErrors.add("Enter valid username");
+                                    }else{
+                                      engine.userErrors.remove("Enter valid username");
+                                    }
+                                    setState(() {
 
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  prefixIcon: Icon(Icons.person_rounded),
-                                  labelText: 'Username',
-                                  border: OutlineInputBorder(),
+                                    });
+                                    if(value.contains("\n")){
+                                      setState(() {
+                                        engine.multiUserCreate = true;
+                                        engine.userMessage = "${value.split('\n').length} users pasted";
+                                      });
+                                    }else{
+                                      if(value.contains("	")){
+                                      if(engine.userL.text.split("	")[0].contains("@")){
+                                        engine.userP.text = value.split("@")[1].split("	")[1];
+                                        engine.userL.text = value.split("@")[0];
+
+                                      }else{
+                                        engine.userL.text = value.split("	")[0];
+                                        engine.userP.text = value.split("	")[1];
+                                      }
+                                        setState(() {
+                                          engine.userMessage = "User will be created as ${engine.normUsername(value.split("	")[0])}";
+                                        });
+                                      }
+                                      setState(() {
+                                        engine.multiUserCreate = false;
+                                      });
+                                    }
+                                  },
+                                  decoration: InputDecoration(
+                                    prefixIcon: Icon(Icons.person_rounded),
+                                    labelText: 'Username',
+                                    border: OutlineInputBorder(),
+                                  ),
                                 ),
                               ),
                             ),
@@ -772,30 +829,191 @@ class NewUserPageState extends State<NewUserPage> {
                       ),
                       Card(
                         elevation: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.all(15),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Padding(padding: EdgeInsets.only(right: 10), child: engine.userErrors.isEmpty ? Icon(Icons.info_outline_rounded) : Icon(Icons.error_rounded)),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Padding(padding: EdgeInsets.all(15), child: engine.userErrors.isEmpty ? Icon(Icons.info_outline_rounded) : Icon(Icons.error_rounded)),
+                            Container(
+                              height: 54,
+                              width: scaffoldWidth - 62,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    engine.userErrors.isEmpty
-                                        ? engine.userMessage
-                                        : engine.userErrors[0],
-                                  )
+                                  Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 15),
+                                      child: Text(
+                                        engine.userErrors.isEmpty
+                                            ? engine.userMessage
+                                            : engine.userErrors[0],
+                                      )
+                                  ),
+
+                                  engine.multiUserCreate
+                                      ? Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                                      child: FilledButton(
+                                          onPressed: () {
+                                            showDialog<String>(
+                                              context: context,
+                                              builder: (BuildContext context) => AlertDialog(
+                                                content: Container(
+                                                  constraints: BoxConstraints(
+                                                    maxHeight: 300
+                                                  ),
+                                                  child: SingleChildScrollView(
+                                                    child: Column(
+                                                        children: engine.userL.text.split('\n').map((userline){
+                                                          if(userline.split("	")[0].length < 4 && userline.split("	")[1].length < 4){
+                                                            return Padding(
+                                                              padding: EdgeInsets.symmetric(vertical: 2),
+                                                              child: Row(
+                                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                children: [
+                                                                  Text(
+                                                                      "Empty line (ignored)",
+                                                                    style: TextStyle(
+                                                                      fontWeight: FontWeight.bold,
+                                                                      color: Theme.of(context).colorScheme.error
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            );
+                                                          }else {
+                                                            if(userline.split("	")[0].length > 4 && !userline.contains("	")){
+                                                              return Padding(
+                                                                padding: EdgeInsets.symmetric(vertical: 2),
+                                                                child: Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                        userline.split("	")[0]
+                                                                    ),
+                                                                    SizedBox(width: 25,),
+                                                                    Text(
+                                                                        "[Random password]"
+                                                                    )
+                                                                  ],
+                                                                ),
+                                                              );
+                                                            }else {
+                                                              return Padding(
+                                                                padding: EdgeInsets.symmetric(vertical: 2),
+                                                                child: Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                        userline.split("	")[0]
+                                                                    ),
+                                                                    SizedBox(width: 25,),
+                                                                    Text(
+                                                                        userline.split("	")[1]
+                                                                    )
+                                                                  ],
+                                                                ),
+                                                              );
+                                                            }
+                                                          }
+                                                        },
+                                                        ).toList()
+                                                    ),
+                                                  ),
+                                                ),
+                                                actions: [
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.end,
+                                                    children: [
+                                                      FilledButton(
+                                                          onPressed: () {
+                                                            Navigator.pop(context);
+                                                          },
+                                                          child: Text(
+                                                            'Done',
+                                                          )
+                                                      ),
+                                                    ],
+                                                  )
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                          child: Text(
+                                            'List users',
+                                            style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                          )
+                                      )
+                                  ):Container(),
                                 ],
                               ),
-                            ],
+                            )
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                        child: Container(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Builder(
+                                builder: (context) {
+                                  return Wrap(
+                                    spacing: 5,
+                                    runSpacing: 5,
+                                    children: engine.labels.keys.toList().map((label) {
+                                        return GestureDetector(
+                                          onTap: () {
+                                            for(int i=0; i < engine.labels[label]["domains"].length; i++){
+                                              if(engine.glowDomains.containsKey(engine.labels[label]["domains"][i])){
+                                                if(engine.glowDomains[engine.labels[label]["domains"][i]].contains(engine.labels[label]["name"])){
+                                                  engine.glowDomains[engine.labels[label]["domains"][i]].remove(engine.labels[label]["name"]);
+                                                  if(engine.glowDomains[engine.labels[label]["domains"][i]].length == 0){
+                                                    engine.glowDomains.remove(engine.labels[label]["domains"][i]);
+                                                  }
+                                                }else{
+                                                  engine.glowDomains[engine.labels[label]["domains"][i]].add(engine.labels[label]["name"]);
+                                                }
+                                              }else{
+                                                engine.glowDomains[engine.labels[label]["domains"][i]] = [];
+                                                engine.glowDomains[engine.labels[label]["domains"][i]].add(engine.labels[label]["name"]);
+                                              }
+                                            }
+                                            if(engine.selectedLabels.contains(label)){
+                                              engine.selectedLabels.remove(label);
+                                            }else{
+                                              engine.selectedLabels.add(label);
+                                            }
+                                            setState(() {});
+                                          },
+                                          child: Chip(
+                                            backgroundColor: engine.selectedLabels.contains(label)
+                                                ? Theme.of(context).colorScheme.primary
+                                                : null,
+                                            label: Text(
+                                              "${engine.labels[label]["name"]}",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w400,
+                                                color: engine.selectedLabels.contains(label)
+                                                    ? Theme.of(context).colorScheme.background
+                                                    : Colors.grey,
+                                              ),
+                                            ),
+                                            elevation: 5.0,
+                                          ),
+                                        );
+                                    })
+                                        .toList()
+                                        .cast<Widget>(),
+                                  );
+                                }
+                            ),
                           ),
                         ),
                       ),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                         child: Container(
-                          height: scaffoldHeight - 246,
+                          height: scaffoldHeight - 290,
                           child: SingleChildScrollView(
                             child: Builder(
                                 builder: (context) {
@@ -822,6 +1040,11 @@ class NewUserPageState extends State<NewUserPage> {
                                             setState(() {});
                                           },
                                           child: Chip(
+                                            side: BorderSide(
+                                              width: engine.glowDomains.containsKey(crD["name"])?2:1,
+                                              strokeAlign: engine.glowDomains.containsKey(crD["name"])?0:-1,
+                                              color: MaterialStateColor.resolveWith((states) => engine.glowDomains.containsKey(crD["name"])?Theme.of(context).colorScheme.primary:Colors.grey),
+                                            ),
                                             backgroundColor: engine.userDomains.contains(crD)
                                                 ? Theme.of(context).colorScheme.primary
                                                 : null,
@@ -831,10 +1054,10 @@ class NewUserPageState extends State<NewUserPage> {
                                                 fontWeight: FontWeight.w400,
                                                 color: engine.userDomains.contains(crD)
                                                     ? Theme.of(context).colorScheme.background
-                                                    : Colors.grey,
+                                                    : MaterialStateColor.resolveWith((states) => engine.glowDomains.containsKey(crD["name"])?Theme.of(context).colorScheme.primary:Colors.grey),
                                               ),
                                             ),
-                                            elevation: 5.0,
+                                            elevation: engine.glowDomains.containsKey(crD["name"])?55:5.0,
                                           ),
                                         );
                                       }else{
@@ -884,7 +1107,7 @@ class NewUserPageState extends State<NewUserPage> {
                             }
                                 : null,
                             child: Text(
-                                engine.userDomains.length > 1 ? "Create users" : "Create user"
+                                (engine.userDomains.length > 1 ||engine.multiUserCreate)? "Create users" : "Create user"
                             )
                         ),
                       ],
