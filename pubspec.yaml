@@ -19,6 +19,7 @@ dependencies:
   dart_ping: ^9.0.1
   encrypt: ^5.0.3
   crypto: ^3.0.3
+  collection: ^1.18.0
   latinize: '>=0.0.1 <1.0.0'
   flutter:
     sdk: flutter

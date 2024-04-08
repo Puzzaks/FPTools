@@ -178,7 +178,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   bool voisoLoading = true;
   bool emaisLoading = true;
   bool domainsLoading = true;
-  Map labels = {};
+  List labels = [];
   List labelDomains = [];
   Map tempLabel = {};
   Map glowDomains = {};
@@ -199,7 +199,6 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   Encrypted encrypt(String plainText) {
     final key = Key.fromUtf8(globalPassword);
     final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
-    print(globalPassword.length);
     String pwd = globalPassword.substring(0, 16);
     final initVector = IV.fromUtf8(pwd);
     Encrypted encryptedData = encrypter.encrypt(plainText, iv: initVector);

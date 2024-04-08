@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -96,7 +97,13 @@ class LabelsPageState extends State<LabelsPage> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.vertical,
                       child: Column(
-                          children: engine.labels.keys.toList().map((label) {
+                          children: engine.labels.map((label) {
+                            int thisIndex = 0;
+                            for(int i=0;i<engine.labels.length;i++){
+                              if(engine.labels[i]["name"]==label["name"]){
+                                thisIndex = i;
+                              }
+                            }
                             return Card(
                               elevation: 2,
                               child: Padding(
@@ -113,44 +120,64 @@ class LabelsPageState extends State<LabelsPage> {
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  label??"Error loading name",
+                                                  label["name"]??"Error loading name",
                                                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                                 ),
                                                 Text(
-                                                  "${engine.labels[label]["domains"].length} domains",
+                                                  "${label["domains"].length} domains",
                                                 ),
                                               ],
                                             ),
                                           ],
                                         ),
-                                        FilledButton(
-                                            onPressed: () {
-                                              engine.creationDomains.clear();
-                                              for(int i=0;i<engine.domains.length;i++){
-                                                for(int a=0;a<engine.domains[engine.domains.keys.toList()[i]].length;a++){
-                                                  var curDomain = engine.domains[engine.domains.keys.toList()[i]][a];
-                                                  curDomain["server"] = engine.domains.keys.toList()[i];
-                                                  if(engine.known.containsKey(engine.domains.keys.toList()[i])){
-                                                    engine.creationDomains.add(curDomain);
+                                        Row(
+                                          children: [
+                                            IconButton(
+                                                onPressed: thisIndex > 0 ?() {
+                                                  setState(() {
+                                                    engine.labels.swap(thisIndex, thisIndex - 1);
+                                                  });
+                                                }:null,
+                                                icon: Icon(Icons.arrow_upward_rounded)
+                                            ),
+                                            IconButton(
+                                                onPressed: thisIndex < (engine.labels.length - 1)?() {
+                                                  setState(() {
+                                                    engine.labels.swap(thisIndex, thisIndex + 1);
+                                                  });
+                                                }:null,
+                                                icon: Icon(Icons.arrow_downward_rounded)
+                                            ),
+                                            FilledButton(
+                                                onPressed: () {
+                                                  engine.creationDomains.clear();
+                                                  for(int i=0;i<engine.domains.length;i++){
+                                                    for(int a=0;a<engine.domains[engine.domains.keys.toList()[i]].length;a++){
+                                                      var curDomain = engine.domains[engine.domains.keys.toList()[i]][a];
+                                                      curDomain["server"] = engine.domains.keys.toList()[i];
+                                                      if(engine.known.containsKey(engine.domains.keys.toList()[i])){
+                                                        engine.creationDomains.add(curDomain);
+                                                      }
+                                                    }
                                                   }
-                                                }
-                                              }
-                                              engine.labelName.text = label??"";
-                                              engine.tempLabel = engine.labels[label];
-                                              for(int i = 0; i < engine.labels[label]["domains"].length; i++){
-                                                if(!engine.tempLabel["domains"].contains(engine.labels[label]["domains"][i])){
-                                                  engine.tempLabel["domains"].add(engine.labels[label]["domains"][i]);
-                                                }
-                                              }
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(builder: (context) => EditLabelPage()),
-                                              );
-                                            },
-                                            child: Text(
-                                              'Edit',
-                                              style: TextStyle(color: Theme.of(context).colorScheme.background),
-                                            )),
+                                                  engine.labelName.text = label["name"]??"";
+                                                  engine.tempLabel = label;
+                                                  for(int i = 0; i < label["domains"].length; i++){
+                                                    if(!engine.tempLabel["domains"].contains(label["domains"][i])){
+                                                      engine.tempLabel["domains"].add(label["domains"][i]);
+                                                    }
+                                                  }
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(builder: (context) => EditLabelPage()),
+                                                  );
+                                                },
+                                                child: Text(
+                                                  'Edit',
+                                                  style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                ))
+                                          ],
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -211,6 +238,18 @@ class EditLabelPageState extends State<EditLabelPage> {
               themeMode: ThemeMode.system,
               debugShowCheckedModeBanner: false,
               home: Consumer<fastEngine>(builder: (context, engine, child) {
+                bool isLabelN = false;
+                bool isLabel(name){
+                  for(int i=0;i<engine.labels.length;i++){
+                    if(engine.labels[i]["name"]==name){
+                      isLabelN = true;
+                      return true;
+                    }
+                  }
+                  isLabelN = false;
+                  return false;
+                }
+                isLabelN = isLabel(engine.labelName.text);
                 return Scaffold(
                   body: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,7 +261,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                           Padding(
                             padding: EdgeInsets.all(10),
                             child: Text(
-                              engine.labels.containsKey(engine.labelName.text)?"Edit label":"Add new label",
+                              isLabelN?"Edit label":"Add new label",
                               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
                             ),
                           ),
@@ -235,6 +274,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                                     controller: engine.labelName,
                                     onChanged: (value) {
                                       setState(() {
+                                        isLabelN = isLabel(value);
                                         engine.tempLabel["name"] = value;
                                       });
                                     },
@@ -245,6 +285,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                                             ? IconButton(
                                             onPressed: () {
                                               setState(() {
+                                                isLabelN = false;
                                                 engine.labelName.clear();
                                                 engine.tempLabel["name"] = "";
                                               });
@@ -264,7 +305,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                             child: Container(
-                              height: scaffoldHeight - (engine.labels.containsKey(engine.labelName.text)?259:189),
+                              height: scaffoldHeight - (isLabelN?259:189),
                               child: SingleChildScrollView(
                                 child: Builder(
                                     builder: (context) {
@@ -326,7 +367,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                           ),
                         ],
                       ),
-                      engine.labels.containsKey(engine.labelName.text)
+                      isLabelN
                           ? Card(
                         elevation: 2,
                         child: Padding(
@@ -356,7 +397,11 @@ class EditLabelPageState extends State<EditLabelPage> {
                                   ),
                                   FilledButton(
                                       onPressed: () {
-                                        engine.labels.remove(engine.labelName.text);
+                                        for(int i=0;i<engine.labels.length;i++){
+                                          if(engine.labels[i]["name"]==engine.labelName.text){
+                                            engine.labels.removeAt(i);
+                                          }
+                                        }
                                         engine.saveLabels().then((value){
                                           Navigator.pop(topContext);
                                         });
@@ -393,10 +438,10 @@ class EditLabelPageState extends State<EditLabelPage> {
                             FilledButton(
                                 onPressed: (engine.labelName.text.isNotEmpty)
                                   ? (){
-                                  engine.labels[engine.labelName.text] = {
+                                  engine.labels.add({
                                     "name": engine.labelName.text,
                                     "domains": engine.tempLabel["domains"]
-                                  };
+                                  });
                                   engine.saveLabels().then((value){
                                     Navigator.pop(topContext);
                                   });

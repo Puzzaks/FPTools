@@ -960,40 +960,40 @@ class NewUserPageState extends State<NewUserPage> {
                                   return Wrap(
                                     spacing: 5,
                                     runSpacing: 5,
-                                    children: engine.labels.keys.toList().map((label) {
+                                    children: engine.labels.map((label) {
                                         return GestureDetector(
                                           onTap: () {
-                                            for(int i=0; i < engine.labels[label]["domains"].length; i++){
-                                              if(engine.glowDomains.containsKey(engine.labels[label]["domains"][i])){
-                                                if(engine.glowDomains[engine.labels[label]["domains"][i]].contains(engine.labels[label]["name"])){
-                                                  engine.glowDomains[engine.labels[label]["domains"][i]].remove(engine.labels[label]["name"]);
-                                                  if(engine.glowDomains[engine.labels[label]["domains"][i]].length == 0){
-                                                    engine.glowDomains.remove(engine.labels[label]["domains"][i]);
+                                            for(int i=0; i < label["domains"].length; i++){
+                                              if(engine.glowDomains.containsKey(label["domains"][i])){
+                                                if(engine.glowDomains[label["domains"][i]].contains(label["name"])){
+                                                  engine.glowDomains[label["domains"][i]].remove(label["name"]);
+                                                  if(engine.glowDomains[label["domains"][i]].length == 0){
+                                                    engine.glowDomains.remove(label["domains"][i]);
                                                   }
                                                 }else{
-                                                  engine.glowDomains[engine.labels[label]["domains"][i]].add(engine.labels[label]["name"]);
+                                                  engine.glowDomains[label["domains"][i]].add(label["name"]);
                                                 }
                                               }else{
-                                                engine.glowDomains[engine.labels[label]["domains"][i]] = [];
-                                                engine.glowDomains[engine.labels[label]["domains"][i]].add(engine.labels[label]["name"]);
+                                                engine.glowDomains[label["domains"][i]] = [];
+                                                engine.glowDomains[label["domains"][i]].add(label["name"]);
                                               }
                                             }
-                                            if(engine.selectedLabels.contains(label)){
-                                              engine.selectedLabels.remove(label);
+                                            if(engine.selectedLabels.contains(label["name"])){
+                                              engine.selectedLabels.remove(label["name"]);
                                             }else{
-                                              engine.selectedLabels.add(label);
+                                              engine.selectedLabels.add(label["name"]);
                                             }
                                             setState(() {});
                                           },
                                           child: Chip(
-                                            backgroundColor: engine.selectedLabels.contains(label)
+                                            backgroundColor: engine.selectedLabels.contains(label["name"])
                                                 ? Theme.of(context).colorScheme.primary
                                                 : null,
                                             label: Text(
-                                              "${engine.labels[label]["name"]}",
+                                              "${label["name"]}",
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w400,
-                                                color: engine.selectedLabels.contains(label)
+                                                color: engine.selectedLabels.contains(label["name"])
                                                     ? Theme.of(context).colorScheme.background
                                                     : Colors.grey,
                                               ),
