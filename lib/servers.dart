@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:provider/provider.dart';
 import 'engine.dart';
+import 'package:flutter/services.dart';
+
 
 class ServersPage extends StatefulWidget {
   const ServersPage({super.key});
@@ -10,9 +12,22 @@ class ServersPage extends StatefulWidget {
 }
 
 class ServersPageState extends State<ServersPage> {
+  bool _onKey(KeyEvent event) {
+    final key = event.logicalKey.keyLabel;
+
+    if (event is KeyUpEvent) {
+      if(key == "Escape"){
+        print("Escape pressed");
+        Navigator.pop(context);
+      }
+    }
+
+    return false;
+  }
   @override
   void initState() {
     super.initState();
+    ServicesBinding.instance.keyboard.addHandler(_onKey);
   }
 
   @override
@@ -60,7 +75,22 @@ class ServersPageState extends State<ServersPage> {
                       child: TextField(
                         controller: engine.serverSearch,
                         onChanged: (value) {
-                          engine.filterServers();
+                          if(value.contains("	")){
+                            if(value.split("	")[0].length > 2 && value.split("	")[1].length > 2 && value.split("	")[2].length > 2 && value.split("	")[3].length > 2){
+                              engine.tempP.text = value.split("	")[3].replaceAll("	", "");
+                              engine.tempU.text = value.split("	")[2].replaceAll("	", "");
+                              engine.tempA.text = value.split("	")[1].replaceAll("	", "").split("://")[1].split(":")[0];
+                              engine.tempL.text = value.split("	")[0].replaceAll("	", "");
+                              engine.serverSearch.text = value.split("	")[0].replaceAll("	", "");
+                              engine.checkAndCacheBrand();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => NewServerPage()),
+                              );
+                            }
+                          }else{
+                            engine.filterServers();
+                          }
                         },
                         decoration: InputDecoration(
                           suffixIcon: Padding(
@@ -116,22 +146,74 @@ class ServersPageState extends State<ServersPage> {
                                                 ),
                                               ],
                                             ),
-                                            FilledButton(
-                                                onPressed: () {
-                                                  engine.tempL.text = engine.known[server]["name"];
-                                                  engine.tempA.text = engine.known[server]["addr"];
-                                                  engine.tempU.text = engine.known[server]["user"];
-                                                  engine.tempP.text = engine.known[server]["pass"];
-                                                  engine.checkAndCacheBrand();
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(builder: (context) => NewServerPage()),
-                                                  );
-                                                },
-                                                child: Text(
-                                                  'Edit',
-                                                  style: TextStyle(color: Theme.of(context).colorScheme.background),
-                                                )),
+                                            Row(
+                                              children: [
+                                                IconButton(
+                                                    onPressed: () {
+                                                      engine.tempL.text = engine.known[server]["name"];
+                                                      engine.tempA.text = engine.known[server]["addr"];
+                                                      engine.tempU.text = engine.known[server]["user"];
+                                                      engine.tempP.text = engine.known[server]["pass"];
+                                                      engine.checkAndCacheBrand();
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(builder: (context) => NewServerPage()),
+                                                      );
+                                                    },
+                                                    icon: Icon(Icons.edit)
+                                                ),
+                                                IconButton(
+                                                    onPressed: (){
+                                                      showDialog<String>(
+                                                        context: context,
+                                                        builder: (BuildContext context) => AlertDialog(
+                                                          icon: Icon(Icons.delete_rounded),
+                                                          title: const Text('Forget this panel?'),
+                                                          content: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Text('You are about to remove ${engine.known[server]["name"]} (${server}) from known servers.\nConfirm deletion?'),
+                                                            ],
+                                                          ),
+                                                          actions: [
+                                                            Row(
+                                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                              children: [
+                                                                FilledButton(
+                                                                    onPressed: () {
+                                                                      Navigator.pop(context);
+                                                                    },
+                                                                    style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
+                                                                    child: Text(
+                                                                      'Cancel',
+                                                                      style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                                                    )
+                                                                ),
+                                                                FilledButton(
+                                                                    onPressed: () async {
+                                                                      engine.known.remove(server);
+                                                                      engine.domains.remove(server);
+                                                                      engine.saveBrandList().then((value){
+                                                                        engine.saveDomains().then((value){
+                                                                          Navigator.pop(context);
+                                                                          setState(() {
+                                                                          });
+                                                                        });
+                                                                      });
+                                                                    },
+                                                                    child: const Text('Confirm')
+                                                                ),
+                                                              ],
+                                                            )
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                    icon: Icon(Icons.delete)
+                                                )
+                                              ],
+                                            ),
                                           ],
                                         ),
                                         engine.availables[server] ? FutureBuilder(
@@ -278,9 +360,24 @@ class NewServerPageState extends State<NewServerPage> {
                       padding: EdgeInsets.all(5),
                       child: TextField(
                         controller: engine.tempL,
+                        onChanged: (value){
+                          if(value.contains("	")){
+                            if(value.split("	")[0].length > 2 && value.split("	")[1].length > 2 && value.split("	")[2].length > 2 && value.split("	")[3].length > 2){
+                              engine.tempP.text = value.split("	")[3].replaceAll("	", "");
+                              engine.tempU.text = value.split("	")[2].replaceAll("	", "");
+                              engine.tempA.text = value.split("	")[1].replaceAll("	", "").split("://")[1].split(":")[0];
+                              engine.tempL.text = value.split("	")[0].replaceAll("	", "");
+                              engine.checkAndCacheBrand();
+                            }
+                          }
+                          setState(() {
+
+                          });
+                        },
                         decoration: InputDecoration(
                           prefixIcon: Icon(Icons.new_label_rounded),
                           labelText: 'Label',
+                          helperText: engine.tempL.text.isEmpty?"Paste whole line from the spreadsheet here for autofill":null,
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -290,7 +387,9 @@ class NewServerPageState extends State<NewServerPage> {
                       child: TextField(
                         controller: engine.tempA,
                         onChanged: (value) {
-                          engine.checkAndCacheBrand();
+                          if(value.isNotEmpty){
+                            engine.checkAndCacheBrand();
+                          }
                         },
                         decoration: InputDecoration(
                           prefixIcon: Icon(Icons.dns_rounded),
@@ -304,7 +403,9 @@ class NewServerPageState extends State<NewServerPage> {
                       child: TextField(
                         controller: engine.tempU,
                         onChanged: (value) {
-                          engine.checkAndCacheBrand();
+                          if(value.isNotEmpty){
+                            engine.checkAndCacheBrand();
+                          }
                         },
                         decoration: InputDecoration(
                           prefixIcon: Icon(Icons.person_rounded),
@@ -318,7 +419,9 @@ class NewServerPageState extends State<NewServerPage> {
                       child: TextField(
                         controller: engine.tempP,
                         onChanged: (value) {
-                          engine.checkAndCacheBrand();
+                          if(value.isNotEmpty){
+                            engine.checkAndCacheBrand();
+                          }
                         },
                         decoration: InputDecoration(
                           prefixIcon: Icon(Icons.password_rounded),
@@ -391,9 +494,14 @@ class NewServerPageState extends State<NewServerPage> {
                                                 FilledButton(
                                                     onPressed: () async {
                                                       engine.known.remove(engine.tempA.text);
+                                                      engine.domains.remove(engine.tempA.text);
                                                       engine.saveBrandList().then((value){
-                                                        Navigator.pop(topContext);
-                                                        Navigator.pop(context);
+                                                        engine.saveDomains().then((value){
+                                                          Navigator.pop(topContext);
+                                                          Navigator.pop(context);
+                                                          setState(() {
+                                                          });
+                                                        });
                                                       });
                                                     },
                                                     child: const Text('Confirm')

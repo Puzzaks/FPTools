@@ -46,6 +46,7 @@ class LogsPageState extends State<LogsPage> {
   Widget build(BuildContext context) {
     final _defaultLightColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal);
     final _defaultDarkColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal, brightness: Brightness.dark);
+    List expanded = [];
     return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
       return MaterialApp(
         theme: ThemeData(
@@ -59,12 +60,6 @@ class LogsPageState extends State<LogsPage> {
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: Consumer<fastEngine>(builder: (context, engine, child) {
-          List unavailables = [];
-          for(int i=0;i<engine.availables.length;i++){
-            if(!engine.availables[engine.availables.keys.toList()[i]]){
-              unavailables.add(engine.availables.keys.toList()[i]);
-            }
-          }
           return LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
             double scaffoldHeight = constraints.maxHeight;
             double scaffoldWidth = constraints.maxWidth;
@@ -133,8 +128,20 @@ class LogsPageState extends State<LogsPage> {
                                     ),
                                     Container(
                                         width: scaffoldWidth-246,
-                                        child: Text(
-                                          log["log"],
+                                        child: log["array"]?GestureDetector(
+                                          onTap: (){if(expanded.contains(log["log"])){
+                                            expanded.remove(log["log"]);
+                                          }else{
+                                            expanded.add(log["log"]);
+                                          }
+                                            setState(() {
+
+                                          });},
+                                          child: expanded.contains(log["log"])?Text(
+                                            log["log"].toString(),
+                                          ):Text("Data from ${log["thread"]} thread. Click to expand."),
+                                        ):Text(
+                                          log["log"].toString(),
                                         )
                                     ),
 

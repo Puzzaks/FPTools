@@ -61,7 +61,6 @@ class MyAppState extends State<MyApp> {
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: Consumer<fastEngine>(builder: (context, engine, child) {
-          engine.defaultContext = context;
           return LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
             double scaffoldHeight = constraints.maxHeight;
             double scaffoldWidth = constraints.maxWidth;
