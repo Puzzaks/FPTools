@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -6,10 +7,11 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:latinize/latinize.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'network.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:http/http.dart' as http;
 
 class Translit {
   final _transliteratedSymbol = <String, String>{
@@ -186,11 +188,8 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   Map glowDomains = {};
   List selectedLabels = [];
   bool multiUserCreate = false;
+  double balance = 0.0;
 
-  clearDB() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.clear();
-  }
   String decrypt(Encrypted encryptedData) {
     final key = Key.fromUtf8(globalPassword);
     final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
@@ -237,6 +236,15 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   String normUsername(username){
     return Translit().toTranslit(source: latinize(username.replaceAll("\r", "").replaceAll("\n", "").replaceAll("	", "").trim())).replaceAll(" ", ".").replaceAll("..", ".").toLowerCase();
   }
+  Future<Map> getAppData() async {
+    final info = await PackageInfo.fromPlatform();
+    Map output = {};
+    output = {
+      "version": info.version,
+      "build": info.buildNumber,
+    };
+    return output;
+  }
   launch() async {
     await WindowManager.instance.ensureInitialized();
     windowManager.waitUntilReadyToShow().then((_) async {
@@ -245,43 +253,47 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     loading = true;
     ignite();
+    await logAdd("Checking proxy...", "info", "startup", false);
+    if(prefs.containsKey("isProxyUsed")){
+      isProxyUsed = prefs.getBool("isProxyUsed")??false;
+    }
+    if(isProxyUsed){
+      proxyStatus = "Checking proxy...";
+      notifyListeners();
+      if(prefs.containsKey("proxy")){
+        String memProxy = "";
+        memProxy = await prefs.getString("proxy")??"";
+        proxy = jsonDecode(decrypt(Encrypted.fromBase64(memProxy)));
+        proxyStatus = "Pinging proxy...";
+        notifyListeners();
+        await pingProxy("${proxy["address"]}:${proxy["port"]}", "${proxy["username"]}:${proxy["password"]}").then((value) async {
+          proxyStatus = "Setting up proxy...";
+          notifyListeners();
+          if(value){
+            HttpOverrides.global = ProxyOverride(proxy: proxy);
+            proxyAddr.text = proxy["address"];
+            proxyPort.text = proxy["port"];
+            proxyUser.text = proxy["username"];
+            proxyPassword.text = proxy["password"];
+            proxyStatus = "Proxy connection established!";
+            notifyListeners();
+          }else{
+            proxyStatus = "Credentials incorrect";
+            notifyListeners();
+          }
+        });
+      }
+    } else {
+      proxyStatus = "Proxy is disabled.";
+      notifyListeners();
+      HttpOverrides.global = CertificateOverride();
+    }
     pingServer().then((value) async {
       if(value){ //if online
-        await logAdd("Checking proxy...", "info", "startup", false);
-        if(prefs.containsKey("isProxyUsed")){
-          isProxyUsed = prefs.getBool("isProxyUsed")??false;
-        }
-        if(isProxyUsed){
-          proxyStatus = "Checking proxy...";
-          notifyListeners();
-          if(prefs.containsKey("proxy")){
-            String memProxy = "";
-            memProxy = await prefs.getString("proxy")??"";
-            proxy = jsonDecode(decrypt(Encrypted.fromBase64(memProxy)));
-            proxyStatus = "Pinging proxy...";
-            notifyListeners();
-            await pingProxy("${proxy["address"]}:${proxy["port"]}", "${proxy["username"]}:${proxy["password"]}").then((value) async {
-              proxyStatus = "Setting up proxy...";
-              notifyListeners();
-              if(value){
-                HttpOverrides.global = ProxyOverride(proxy: proxy);
-                proxyAddr.text = proxy["address"];
-                proxyPort.text = proxy["port"];
-                proxyUser.text = proxy["username"];
-                proxyPassword.text = proxy["password"];
-                proxyStatus = "Proxy connection established!";
-                notifyListeners();
-              }else{
-                proxyStatus = "Credentials incorrect";
-                notifyListeners();
-              }
-            });
-          }
-        } else {
-          proxyStatus = "Proxy is disabled.";
-          notifyListeners();
-          HttpOverrides.global = CertificateOverride();
-        }
+        await logAdd("Checking version...", "info", "startup", false);
+        await getAppData().then((value){
+
+        });
 
         await logAdd("Downloading data...", "info", "startup", false);
         await getData("known").then((value) async {
@@ -341,14 +353,12 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         domainsLoading = false;
         emaisLoading = false;
         loading = false;
+        loadOnLaunch = true;
         notifyListeners();
       }else{
         await logAdd("Main server is unreachable. What are you doing?", "error", "startup", false);
       }
     });
-
-
-
   }
   Future deleteUser(user) async {
     newbieDomains.clear();
@@ -415,7 +425,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
           pass = userL.text.contains("	")
               ? userL.text.split('\n')[h].split("	")[1] == "" ? generateRandomString(12) : userL.text.split('\n')[h].split("	")[1]
               : generateRandomString(12);
-          uname = normUsername(userL.text.split('\n')[h].split("	")[0].replaceAll("\r", ""));
+          uname = normUsername(userL.text.split('\n')[h].split("	")[0].split("@")[0].replaceAll("\r", ""));
           if(uname.length > 1){
             if(userDomains.length==1){
               multiUserCopy = "$multiUserCopy$uname@${userDomains[0]["name"]}	$pass\n";
@@ -641,7 +651,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         if (!allUsers.contains(users[i]["login"])) {
           allUsers.add(users[i]["login"]);
         }
-        if (users[i]["login"].contains(normUsername(userSearch.text))) {
+        if (users[i]["address"].contains(normUsername(userSearch.text))) {
           if (displayUsers) {
             if (filtered.length < 100) {
               if (!filtered.containsKey(users[i]["login"])) {
@@ -772,8 +782,24 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       voisoKeyUser.text = voisoKeys["user"];
       voisoKeyCenter.text = voisoKeys["center"];
     }
+    if(voisoCluster.text.isNotEmpty && voisoKeyCenter.text.isNotEmpty){
+      getVoisoBalance();
+    }
     // voisoLoading = false;
     voisoStatus = "Loaded";
+  }
+  getVoisoBalance(){
+    Timer.periodic(Duration(milliseconds: 1000), (timer) async {
+      var endpoint = "${voisoCluster.text}.voiso.com";
+      var method = "api/v1/${voisoKeyCenter.text}/balance";
+      final response = await http.get(
+        Uri.https(
+            endpoint, method
+        ),
+      );
+      balance = jsonDecode(response.body)["balance"];
+      notifyListeners();
+    });
   }
   Future<bool> saveVoisoKeys() async{
     final SharedPreferences prefs = await SharedPreferences.getInstance();

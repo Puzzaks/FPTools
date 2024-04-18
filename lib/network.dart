@@ -49,22 +49,16 @@ Future<String> getData(val) async {
   if(prefs.containsKey("isProxyUsed")){
     isProxyUsed = prefs.getBool("isProxyUsed")??false;
   }
-  HttpOverrides.global = CertificateOverride();
   var params = {
   'type': val
   };
-  var endpoint = "172.17.6.248";
+  var endpoint = isProxyUsed?"95.67.123.210:6060":"172.17.6.248:6060";
   var method = "api/getData.php";
   final response = await http.get(
     Uri.http(
         endpoint, method, params
     ),
   );
-  if(isProxyUsed){
-    String memProxy = "";
-    memProxy = await prefs.getString("proxy")??"";
-    HttpOverrides.global = ProxyOverride(proxy: jsonDecode(decrypt(Encrypted.fromBase64(memProxy))));
-  }
   return response.body;
 }
 
@@ -74,8 +68,7 @@ Future<String> setData(data, body) async {
   if(prefs.containsKey("isProxyUsed")){
     isProxyUsed = prefs.getBool("isProxyUsed")??false;
   }
-  HttpOverrides.global = CertificateOverride();
-  var endpoint = "172.17.6.248";
+  var endpoint = isProxyUsed?"95.67.123.210:6060":"172.17.6.248:6060";
   const method = "api/setData.php";
   final response = await http.post(
     Uri.http(
@@ -88,11 +81,6 @@ Future<String> setData(data, body) async {
         }
       )
   );
-  if(isProxyUsed){
-    String memProxy = "";
-    memProxy = await prefs.getString("proxy")??"";
-    HttpOverrides.global = ProxyOverride(proxy: jsonDecode(decrypt(Encrypted.fromBase64(memProxy))));
-  }
   return response.body;
 }
 
@@ -218,7 +206,12 @@ Future<bool> checkConnect(ip) async {
   }
 }
 Future<bool> pingServer() async {
-  var endpoint = "172.17.6.248";
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool isProxyUsed = false;
+  if(prefs.containsKey("isProxyUsed")){
+    isProxyUsed = prefs.getBool("isProxyUsed")??false;
+  }
+  var endpoint = isProxyUsed?"95.67.123.210:6060":"172.17.6.248:6060";
   try {
     final response = await http.get(Uri.http(endpoint));
     return response.statusCode == 200;

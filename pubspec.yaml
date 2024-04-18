@@ -20,6 +20,7 @@ dependencies:
   encrypt: ^5.0.3
   crypto: ^3.0.3
   collection: ^1.18.0
+  package_info_plus: ^4.0.2
   latinize: '>=0.0.1 <1.0.0'
   flutter:
     sdk: flutter

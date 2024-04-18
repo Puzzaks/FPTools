@@ -56,7 +56,7 @@ class AgentsPageState extends State<AgentsPage> {
                   }
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => NewUserPage()),
+                    MaterialPageRoute(builder: (context) => NewAgentPage()),
                   );
                 },
                 tooltip: "Add user",
@@ -505,13 +505,13 @@ class AgentsPageState extends State<AgentsPage> {
   }
 }
 
-class NewUserPage extends StatefulWidget {
-  const NewUserPage({super.key});
+class NewAgentPage extends StatefulWidget {
+  const NewAgentPage({super.key});
   @override
-  NewUserPageState createState() => NewUserPageState();
+  NewAgentPageState createState() => NewAgentPageState();
 }
 
-class NewUserPageState extends State<NewUserPage> {
+class NewAgentPageState extends State<NewAgentPage> {
   @override
   void initState() {
     super.initState();

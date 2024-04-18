@@ -882,13 +882,19 @@ class NewUserPageState extends State<NewUserPage> {
                                                             );
                                                           }else {
                                                             if(userline.split("	")[0].length > 4 && !userline.contains("	")){
+                                                              String uline = "";
+                                                              if(userline.split("	")[0].contains("@")){
+                                                                uline = userline.split("	")[0].split("@")[0];
+                                                              }else{
+                                                                userline.split("	")[0];
+                                                              }
                                                               return Padding(
                                                                 padding: EdgeInsets.symmetric(vertical: 2),
                                                                 child: Row(
                                                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                                   children: [
                                                                     Text(
-                                                                        userline.split("	")[0]
+                                                                        uline
                                                                     ),
                                                                     SizedBox(width: 25,),
                                                                     Text(
@@ -898,13 +904,19 @@ class NewUserPageState extends State<NewUserPage> {
                                                                 ),
                                                               );
                                                             }else {
+                                                              String uline = "";
+                                                              if(userline.split("	")[0].contains("@")){
+                                                                uline = userline.split("	")[0].split("@")[0];
+                                                              }else{
+                                                                userline.split("	")[0];
+                                                              }
                                                               return Padding(
                                                                 padding: EdgeInsets.symmetric(vertical: 2),
                                                                 child: Row(
                                                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                                   children: [
                                                                     Text(
-                                                                        userline.split("	")[0]
+                                                                        uline
                                                                     ),
                                                                     SizedBox(width: 25,),
                                                                     Text(
