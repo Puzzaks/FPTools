@@ -12,26 +12,20 @@ class ServersPage extends StatefulWidget {
 }
 
 class ServersPageState extends State<ServersPage> {
-  bool _onKey(KeyEvent event) {
-    final key = event.logicalKey.keyLabel;
-
-    if (event is KeyUpEvent) {
-      if(key == "Escape"){
-        print("Escape pressed");
-        Navigator.pop(context);
-      }
-    }
-
-    return false;
-  }
   @override
   void initState() {
     super.initState();
-    ServicesBinding.instance.keyboard.addHandler(_onKey);
   }
 
   @override
   Widget build(BuildContext context) {
+    ServicesBinding.instance.keyboard.addHandler((KeyEvent event){
+      if (event is KeyUpEvent && event.logicalKey.keyLabel == "F5") {
+        setState(() {});
+        return true;
+      }
+      return false;
+    });
     final _defaultLightColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal);
     final _defaultDarkColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal, brightness: Brightness.dark);
     return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
@@ -326,8 +320,16 @@ class NewServerPageState extends State<NewServerPage> {
 
   @override
   Widget build(BuildContext topContext) {
+    ServicesBinding.instance.keyboard.addHandler((KeyEvent event){
+      if (event is KeyUpEvent && event.logicalKey.keyLabel == "Escape") {
+        Navigator.pop(this.context);
+        return true;
+      }
+      return false;
+    });
     final _defaultLightColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal);
     final _defaultDarkColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal, brightness: Brightness.dark);
+    bool isCtrl = false;
     return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
       return MaterialApp(
         theme: ThemeData(
@@ -341,6 +343,37 @@ class NewServerPageState extends State<NewServerPage> {
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: Consumer<fastEngine>(builder: (context, engine, child) {
+          ServicesBinding.instance.keyboard.addHandler((KeyEvent event){
+            if (event is KeyUpEvent && event.logicalKey.keyLabel == "Enter") {
+              if(engine.tempA.text.isNotEmpty && engine.tempPanelAddReady && !engine.tempPanelAddloading){
+                engine.saveBrand().then((value) {
+                  engine.filterServers().then((e){
+                    Navigator.pop(this.context);
+                  });
+                });
+              }
+              return true;
+            }
+            if (isCtrl && event.logicalKey.keyLabel == "S") {
+              if(engine.tempA.text.isNotEmpty && engine.tempPanelAddReady && !engine.tempPanelAddloading){
+                engine.saveBrand().then((value) {
+                  engine.filterServers().then((e){
+                    Navigator.pop(this.context);
+                  });
+                });
+              }
+              return true;
+            }
+            if (event is KeyDownEvent && event.logicalKey.keyLabel == "Control Left") {
+              isCtrl = true;
+              return true;
+            }
+            if (event is KeyUpEvent && event.logicalKey.keyLabel == "Control Left") {
+              isCtrl = false;
+              return true;
+            }
+            return false;
+          });
           return Scaffold(
             body: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

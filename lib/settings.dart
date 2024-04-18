@@ -147,6 +147,39 @@ class SettingsPageState extends State<SettingsPage> {
                             ),
                           ),
                         ), // Duplicates
+                        // Card(
+                        //   elevation: 2,
+                        //   child: Padding(
+                        //     padding: const EdgeInsets.all(15),
+                        //     child: Row(
+                        //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //       children: [
+                        //         const Column(
+                        //           crossAxisAlignment: CrossAxisAlignment.start,
+                        //           children: [
+                        //             Text(
+                        //               "Read-write mode",
+                        //               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        //             ),
+                        //             Text(
+                        //               "Allow writing to the remote DB",
+                        //             )
+                        //           ],
+                        //         ),
+                        //         Switch(
+                        //           thumbIcon: thumbIcon,
+                        //           value: engine.remoteRWMode,
+                        //           onChanged: (bool value) {
+                        //             setState(() {
+                        //               engine.remoteRWMode = value;
+                        //               engine.saveToggle("remoteRWMode", value);
+                        //             });
+                        //           },
+                        //         )
+                        //       ],
+                        //     ),
+                        //   ),
+                        // ), // Admin
                         Card(
                           elevation: 2,
                           child: Padding(
@@ -363,84 +396,6 @@ class SettingsPageState extends State<SettingsPage> {
                               )
                           ),
                         ), // Voiso
-                        Card(
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(15),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Erase database",
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                    ),
-                                    Text(
-                                      "If you have forgot your passkey",
-                                    )
-                                  ],
-                                ),
-                                FilledButton(
-                                    onPressed: () {
-                                      showDialog<String>(
-                                        context: context,
-                                        builder: (BuildContext context) => AlertDialog(
-                                          icon: Icon(Icons.delete_rounded),
-                                          title: const Text('Clear data?'),
-                                          content: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text('You are about to clear all known servers and settings.\nPlease confirm this action'),
-                                            ],
-                                          ),
-                                          actions: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                FilledButton(
-                                                    onPressed: () {
-                                                      Navigator.pop(context);
-                                                    },
-                                                    style: ButtonStyle(backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)),
-                                                    child: Text(
-                                                      'Cancel',
-                                                      style: TextStyle(color: Theme.of(context).colorScheme.background),
-                                                    )
-                                                ),
-                                                FilledButton(
-                                                    onPressed: () async {
-                                                      engine.clearDB();
-                                                      engine.users.clear();
-                                                      engine.filtered.clear();
-                                                      engine.known.clear();
-                                                      engine.logins.clear();
-                                                      engine.globalPassword = "";
-                                                      engine.globeP.text = "";
-                                                      engine.launch();
-                                                      Navigator.pop(context);
-                                                    },
-                                                    child: const Text('Confirm')
-                                                ),
-                                              ],
-                                            )
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                    style: ButtonStyle(
-                                        backgroundColor: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.error)
-                                    ),
-                                    child: Text(
-                                      'Erase',
-                                      style: TextStyle(color: Theme.of(context).colorScheme.background),
-                                    ))
-                              ],
-                            ),
-                          ),
-                        ), // Erase
                       ],
                     ),
                   ),

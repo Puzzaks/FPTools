@@ -9,6 +9,7 @@ import 'package:latinize/latinize.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'network.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class Translit {
   final _transliteratedSymbol = <String, String>{
@@ -162,6 +163,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   bool loadOnLaunch = false;
   bool displayUsers = true;
   bool allowDuplicates = true;
+  bool remoteRWMode = false;
   List selectedUsers = [];
   List selectedGroups = [];
   List newbieDomains = [];
@@ -170,7 +172,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   bool tempPanelAddReady = false;
   bool tempPanelAddloading = false;
   bool loggedIn = false;
-  String globalPassword = "";
+  String globalPassword = md5.convert(utf8.encode(md5.convert(utf8.encode("113245-FPT")).toString())).toString();
   bool isProxyUsed = false;
   Map proxy = {};
   String proxyStatus = "Loading...";
@@ -207,7 +209,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if(prefs.containsKey("globalPassword")){
       var refPWD = prefs.getString("globalPassword");
-      var checkPWD = md5.convert(utf8.encode(md5.convert(utf8.encode("$password-FPT")).toString())).toString();
+      var checkPWD = md5.convert(utf8.encode(md5.convert(utf8.encode("113245-FPT")).toString())).toString();
       if(checkPWD == refPWD){
         globalPassword = checkPWD;
         loggedIn = true;
@@ -217,11 +219,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     return false;
   }
-  Future<void> setPassword (String password) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    globalPassword = md5.convert(utf8.encode(md5.convert(utf8.encode("$password-FPT")).toString())).toString();
-    prefs.setString("globalPassword", globalPassword);
-  }
+
   Future<void> logAdd (log, type, thread, bool isArray) async {
     logs.add({
       "time": DateTime.now().millisecondsSinceEpoch,
@@ -244,116 +242,113 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     windowManager.waitUntilReadyToShow().then((_) async {
       await windowManager.setTitle("OneTool: $action");
     });
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     loading = true;
     ignite();
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    await logAdd("Checking proxy...", "info", "startup", false);
-    if(prefs.containsKey("isProxyUsed")){
-      isProxyUsed = prefs.getBool("isProxyUsed")??false;
-    }
-    if(isProxyUsed){
-      proxyStatus = "Checking proxy...";
-      notifyListeners();
-      if(prefs.containsKey("proxy")){
-        String memProxy = "";
-        memProxy = await prefs.getString("proxy")??"";
-        proxy = jsonDecode(decrypt(Encrypted.fromBase64(memProxy)));
-        proxyStatus = "Pinging proxy...";
-        notifyListeners();
-        await pingProxy("${proxy["address"]}:${proxy["port"]}", "${proxy["username"]}:${proxy["password"]}").then((value) async {
-          proxyStatus = "Setting up proxy...";
-          notifyListeners();
-          if(value){
-            HttpOverrides.global = ProxyOverride(proxy: proxy);
-            proxyAddr.text = proxy["address"];
-            proxyPort.text = proxy["port"];
-            proxyUser.text = proxy["username"];
-            proxyPassword.text = proxy["password"];
-            proxyStatus = "Proxy connection established!";
-            notifyListeners();
-          }else{
-            proxyStatus = "Credentials incorrect";
-            notifyListeners();
-          }
-        });
-      }
-    }else {
-      proxyStatus = "Proxy is disabled.";
-      notifyListeners();
-      HttpOverrides.global = CertificateOverride();
-    }
-    await logAdd("Loading saved data...", "info", "startup", false);
-    await windowManager.setTitle("OneTool: $action");
-    notifyListeners();
-    if(prefs.containsKey("displayUsers")){
-      displayUsers = prefs.getBool("displayUsers")??true;
-    }
-    if(prefs.containsKey("allowDuplicates")){
-      allowDuplicates = prefs.getBool("allowDuplicates")??false;
-    }
-    if(prefs.containsKey("known")){
-      String memKnown = "";
-      memKnown = await prefs.getString("known")??"";
-      known = jsonDecode(decrypt(Encrypted.fromBase64(memKnown)));
-      if(prefs.containsKey("logins")){
-        String memLogs = "";
-        memLogs = await prefs.getString("logins")??"";
-        logins = jsonDecode(decrypt(Encrypted.fromBase64(memLogs)));
-      }
-      if(prefs.containsKey("domains")){
-        String memDomains = "";
-        memDomains = prefs.getString("domains")??"";
-        domains = jsonDecode(decrypt(Encrypted.fromBase64(memDomains)));
-        for(int n=0; n<domains.keys.toList().length;n++){
-          if(!known.containsKey(domains.keys.toList()[n])){
-            print("Not found: ${domains.keys.toList()[n]} - ${domains[domains.keys.toList()[n]]}");
-            domains.remove(domains.keys.toList()[n]);
-          }
+    pingServer().then((value) async {
+      if(value){ //if online
+        await logAdd("Checking proxy...", "info", "startup", false);
+        if(prefs.containsKey("isProxyUsed")){
+          isProxyUsed = prefs.getBool("isProxyUsed")??false;
         }
-      }
-      if(prefs.containsKey("labels")){
-        String memLabels = "";
-        memLabels = prefs.getString("labels")??"";
-        labels = jsonDecode(decrypt(Encrypted.fromBase64(memLabels)));
-      }
-      for(int i=0; i<known.length;i++){
-        var keyVar = known[known.keys.toList()[i]]["addr"];
-        await logAdd("Checking connection to $keyVar...", "info", "startup", false);
-        notifyListeners();
-        await checkConnect(keyVar).then((value) async {
-          availables[keyVar] = value;
-          if(value){
-            if(logins.containsKey(keyVar)){
-              checkLogin(keyVar);
+        if(isProxyUsed){
+          proxyStatus = "Checking proxy...";
+          notifyListeners();
+          if(prefs.containsKey("proxy")){
+            String memProxy = "";
+            memProxy = await prefs.getString("proxy")??"";
+            proxy = jsonDecode(decrypt(Encrypted.fromBase64(memProxy)));
+            proxyStatus = "Pinging proxy...";
+            notifyListeners();
+            await pingProxy("${proxy["address"]}:${proxy["port"]}", "${proxy["username"]}:${proxy["password"]}").then((value) async {
+              proxyStatus = "Setting up proxy...";
+              notifyListeners();
+              if(value){
+                HttpOverrides.global = ProxyOverride(proxy: proxy);
+                proxyAddr.text = proxy["address"];
+                proxyPort.text = proxy["port"];
+                proxyUser.text = proxy["username"];
+                proxyPassword.text = proxy["password"];
+                proxyStatus = "Proxy connection established!";
+                notifyListeners();
+              }else{
+                proxyStatus = "Credentials incorrect";
+                notifyListeners();
+              }
+            });
+          }
+        } else {
+          proxyStatus = "Proxy is disabled.";
+          notifyListeners();
+          HttpOverrides.global = CertificateOverride();
+        }
+
+        await logAdd("Downloading data...", "info", "startup", false);
+        await getData("known").then((value) async {
+          known = jsonDecode(decrypt(Encrypted.fromBase64(value)));
+        });
+        await getData("domains").then((value) async {
+          domains = jsonDecode(decrypt(Encrypted.fromBase64(value)));
+          for(int n=0; n<domains.keys.toList().length;n++){
+            if(!known.containsKey(domains.keys.toList()[n])){
+              print("Not found: ${domains.keys.toList()[n]} - ${domains[domains.keys.toList()[n]]}");
+              domains.remove(domains.keys.toList()[n]);
             }
           }
         });
-      }
-      for(int i=0; i<known.length;i++){
-        var keyVar = known[known.keys.toList()[i]]["addr"];
-        if(logins.containsKey(keyVar)){
-          await logAdd("Checking login with $keyVar...", "info", "startup", false);
-          await windowManager.setTitle("OneTool: $action");
-          notifyListeners();
-          if(availables[keyVar]){
-            checkLogin(keyVar);
-          }
+
+        await logAdd("Loading settings...", "info", "startup", false);
+        if(prefs.containsKey("displayUsers")){
+          displayUsers = prefs.getBool("displayUsers")??true;
         }
+        if(prefs.containsKey("allowDuplicates")){
+          allowDuplicates = prefs.getBool("allowDuplicates")??false;
+        }
+        if(prefs.containsKey("remoteRWMode")){
+          remoteRWMode = prefs.getBool("remoteRWMode")??false;
+        }
+
+
+        if(prefs.containsKey("logins")){
+          String memLogs = "";
+          memLogs = await prefs.getString("logins")??"";
+          logins = jsonDecode(decrypt(Encrypted.fromBase64(memLogs)));
+        }
+        if(prefs.containsKey("labels")){
+          String memLabels = "";
+          memLabels = prefs.getString("labels")??"";
+          labels = jsonDecode(decrypt(Encrypted.fromBase64(memLabels)));
+        }
+        for(int i=0; i<known.length;i++){
+          var keyVar = known[known.keys.toList()[i]]["addr"];
+          await logAdd("Checking connection to $keyVar...", "info", "startup", false);
+          notifyListeners();
+          await checkConnect(keyVar).then((value) async {
+            availables[keyVar] = value;
+            if(value){
+              checkLogin(keyVar);
+            }
+          });
+        }
+        filterServers();
+        domainsLoading = false;
+
+        await logAdd("Loading users...", "info", "startup", false);
+        await getAllUsers().then((value){
+          filterUsers();
+        });
+
+        domainsLoading = false;
+        emaisLoading = false;
+        loading = false;
+        notifyListeners();
+      }else{
+        await logAdd("Main server is unreachable. What are you doing?", "error", "startup", false);
       }
-      filterServers();
-      domainsLoading = false;
-      await logAdd("Loading users...", "info", "startup", false);
-      await windowManager.setTitle("OneTool: $action");
-      notifyListeners();
-      await getAllUsers().then((value){
-        filterUsers();
-      });
-      notifyListeners();
-    }
-    domainsLoading = false;
-    emaisLoading = false;
-    loading = false;
-    notifyListeners();
+    });
+
+
+
   }
   Future deleteUser(user) async {
     newbieDomains.clear();
@@ -517,6 +512,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
               out.add(domain);
             }
           }
+          notifyListeners();
         });
       }
     });
@@ -582,10 +578,11 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     known.remove(tempA.text);
     tempKnown.addAll(known);
     known = tempKnown;
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("known", encrypt(jsonEncode(known)).base64);
-    filterServers();
-    return true;
+    await setData("known", encrypt(jsonEncode(known)).base64).then((value){
+      filterServers();
+      return true;
+    });
+    return false;
   }
   Future<bool> saveLabels() async{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -594,10 +591,11 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     return true;
   }
   Future<bool> saveBrandList() async{
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("known", encrypt(jsonEncode(known)).base64);
-    filterServers();
-    return true;
+    await setData("known", encrypt(jsonEncode(known)).base64).then((value){
+      filterServers();
+      return true;
+    });
+    return false;
   }
   Future<bool> saveProxy() async{
     proxyStatus = "Checking proxy...";
@@ -758,8 +756,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   }
   Future<bool> saveDomains() async{
     notifyListeners();
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("domains", encrypt(jsonEncode(domains)).base64);
+    setData("domains", encrypt(jsonEncode(domains)).base64);
     return true;
   }
 

@@ -1,7 +1,12 @@
 
 import 'dart:io';
+import 'package:crypto/crypto.dart';
+import 'package:encrypt/encrypt.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:onetool/engine.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProxyOverride extends HttpOverrides{
   late Map proxy;
@@ -29,6 +34,66 @@ class CertificateOverride extends HttpOverrides{
     return super.createHttpClient(context)
       ..badCertificateCallback = (X509Certificate cert, String host, int port)=> true;
   }
+}
+
+String decrypt(Encrypted encryptedData) {
+  final key = Key.fromUtf8(md5.convert(utf8.encode(md5.convert(utf8.encode("113245-FPT")).toString())).toString());
+  final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+  final initVector = IV.fromUtf8(md5.convert(utf8.encode(md5.convert(utf8.encode("113245-FPT")).toString())).toString().substring(0, 16));
+  return encrypter.decrypt(encryptedData, iv: initVector);
+}
+
+Future<String> getData(val) async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool isProxyUsed = false;
+  if(prefs.containsKey("isProxyUsed")){
+    isProxyUsed = prefs.getBool("isProxyUsed")??false;
+  }
+  HttpOverrides.global = CertificateOverride();
+  var params = {
+  'type': val
+  };
+  var endpoint = "172.17.6.248";
+  var method = "api/getData.php";
+  final response = await http.get(
+    Uri.http(
+        endpoint, method, params
+    ),
+  );
+  if(isProxyUsed){
+    String memProxy = "";
+    memProxy = await prefs.getString("proxy")??"";
+    HttpOverrides.global = ProxyOverride(proxy: jsonDecode(decrypt(Encrypted.fromBase64(memProxy))));
+  }
+  return response.body;
+}
+
+Future<String> setData(data, body) async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool isProxyUsed = false;
+  if(prefs.containsKey("isProxyUsed")){
+    isProxyUsed = prefs.getBool("isProxyUsed")??false;
+  }
+  HttpOverrides.global = CertificateOverride();
+  var endpoint = "172.17.6.248";
+  const method = "api/setData.php";
+  final response = await http.post(
+    Uri.http(
+        endpoint, method
+    ),
+      body: jsonEncode(
+          {
+          "type": data,
+          "data": body
+        }
+      )
+  );
+  if(isProxyUsed){
+    String memProxy = "";
+    memProxy = await prefs.getString("proxy")??"";
+    HttpOverrides.global = ProxyOverride(proxy: jsonDecode(decrypt(Encrypted.fromBase64(memProxy))));
+  }
+  return response.body;
 }
 
 Future <Map> fastpanelLogin(ip, user, key) async {
@@ -147,6 +212,15 @@ Future<bool> checkConnect(ip) async {
   var endpoint = "$ip:8888";
   try {
     final response = await http.head(Uri.https(endpoint));
+    return response.statusCode == 200;
+  } catch (_) {
+    return false;
+  }
+}
+Future<bool> pingServer() async {
+  var endpoint = "172.17.6.248";
+  try {
+    final response = await http.get(Uri.http(endpoint));
     return response.statusCode == 200;
   } catch (_) {
     return false;
