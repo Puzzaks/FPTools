@@ -1,6 +1,5 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'engine.dart';
@@ -34,8 +33,6 @@ extension DateTimeExtension on DateTime {
       return 'Just now';
     }
   }
-
-
 }
 class LogsPageState extends State<LogsPage> {
   @override

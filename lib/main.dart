@@ -1,19 +1,22 @@
+import 'package:flutter/services.dart';
 import 'package:onetool/logs.dart';
+import 'package:onetool/numbercheck.dart';
 import 'package:onetool/servers.dart';
 import 'package:onetool/settings.dart';
 import 'package:onetool/users.dart';
+import 'package:onetool/engine.dart';
+import 'package:onetool/voiso.dart';
+import 'labels.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:window_manager/window_manager.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:onetool/engine.dart';
-import 'agents.dart';
 import 'package:provider/provider.dart';
-import 'labels.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
-  WindowManager.instance.setMinimumSize(const Size(700, 475));
+  WindowManager.instance.setMinimumSize(const Size(720, 480));
   // WindowManager.instance.setMaximumSize(const Size(775, 525));
 
 
@@ -24,13 +27,13 @@ Future<void> main() async {
 }
 
 class MyApp extends StatefulWidget {
-  MyApp({super.key});
+  const MyApp({super.key});
   @override
   MyAppState createState() => MyAppState();
 }
-
 class MyAppState extends State<MyApp> {
   int screenIndex = 0;
+  @override
   void initState() {
     WidgetsFlutterBinding.ensureInitialized();
     super.initState();
@@ -38,10 +41,13 @@ class MyAppState extends State<MyApp> {
       Provider.of<fastEngine>(context, listen: false).launch();
     });
   }
-
+  Future<String?> getClipboardData() async {
+    ClipboardData? data = await Clipboard.getData(Clipboard.kTextPlain);
+    return data?.text;
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext aTopContext) {
     final _defaultLightColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal);
     final _defaultDarkColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal, brightness: Brightness.dark);
     return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
@@ -57,7 +63,7 @@ class MyAppState extends State<MyApp> {
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: Consumer<fastEngine>(builder: (context, engine, child) {
-          return LayoutBuilder(builder: (BuildContext context, BoxConstraints constraints) {
+          return LayoutBuilder(builder: (BuildContext uTopContext, BoxConstraints constraints) {
             double scaffoldHeight = constraints.maxHeight;
             double scaffoldWidth = constraints.maxWidth;
             return Scaffold(
@@ -70,39 +76,49 @@ class MyAppState extends State<MyApp> {
                       elevation: 5,
                       extended: false,
                       destinations: [
-                        NavigationRailDestination(
+                        const NavigationRailDestination(
                           label: Text("Home", style: TextStyle(fontSize: 18)),
                           icon: Icon(Icons.home_rounded),
                         ),
                         NavigationRailDestination(
                           disabled: engine.domainsLoading,
-                          label: Text("Users", style: TextStyle(fontSize: 18)),
-                          icon: Icon(Icons.person_rounded),
+                          label: const Text("Emails", style: TextStyle(fontSize: 18)),
+                          icon: const Icon(Icons.alternate_email_rounded),
                         ),
                         NavigationRailDestination(
                           disabled: engine.domainsLoading,
-                          label: Text("Servers", style: TextStyle(fontSize: 18)),
-                          icon: Icon(Icons.dns_rounded),
+                          label: const Text("Servers", style: TextStyle(fontSize: 18)),
+                          icon: const Icon(Icons.dns_rounded),
                         ),
                         NavigationRailDestination(
                           disabled: engine.domainsLoading,
-                          label: Text("Labels", style: TextStyle(fontSize: 18)),
-                          icon: Icon(Icons.label_rounded),
+                          label: const Text("Labels", style: TextStyle(fontSize: 18)),
+                          icon: const Icon(Icons.label_rounded),
                         ),
                         NavigationRailDestination(
-                          disabled: engine.voisoLoading,
-                          label: Text("Voiso Users", style: TextStyle(fontSize: 18)),
-                          icon: Icon(Icons.dialer_sip_rounded),
+                          disabled: engine.voisoClusters.isEmpty,
+                          label: const Text("Voiso Users", style: TextStyle(fontSize: 18)),
+                          icon: const Icon(Icons.dialer_sip_rounded),
+                        ),
+                        NavigationRailDestination(
+                          // disabled: engine.voisoLoading,
+                          label: const Text("Voiso Clusters", style: TextStyle(fontSize: 18)),
+                          icon: const Icon(Icons.sip_rounded),
+                        ),
+                        NavigationRailDestination(
+                          // disabled: engine.voisoLoading,
+                          label: const Text("Numbercheck", style: TextStyle(fontSize: 18)),
+                          icon: const Icon(Icons.dialpad_rounded),
                         ),
                         NavigationRailDestination(
                           disabled: engine.domainsLoading,
-                          label: Text("Logs", style: TextStyle(fontSize: 18)),
-                          icon: Icon(Icons.history_rounded),
+                          label: const Text("Logs", style: TextStyle(fontSize: 18)),
+                          icon: const Icon(Icons.history_rounded),
                         ),
                         NavigationRailDestination(
-                          padding: EdgeInsets.only(top: scaffoldHeight - 320),
-                          label: Text("Settings", style: TextStyle(fontSize: 18)),
-                          icon: Icon(Icons.settings_rounded),
+                          padding: EdgeInsets.only(top: scaffoldHeight - 404),
+                          label: const Text("Settings", style: TextStyle(fontSize: 18)),
+                          icon: const Icon(Icons.settings_rounded),
                         ),
                       ],
                       selectedIndex: screenIndex,
@@ -113,13 +129,13 @@ class MyAppState extends State<MyApp> {
                         });
                       },
                     ),
-                    VerticalDivider(thickness: 1, width: 1),
+                    const VerticalDivider(thickness: 1, width: 1),
                     Container(
                       width: scaffoldWidth - 81,
                       height: scaffoldHeight,
                       child: Builder(
                         builder: (context) {
-                          Widget metricCard(name, amount, page, icon){
+                          Widget metricCard(name, amount, page, button){
                             return Expanded(
                               child: Card(
                                 clipBehavior: Clip.hardEdge,
@@ -137,16 +153,12 @@ class MyAppState extends State<MyApp> {
                                       children: [
                                         Row(
                                           children: [
-                                            Padding(
-                                              padding: EdgeInsets.only(right:9),
-                                              child: icon,
-                                            ),
                                             Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
                                                   "${amount.toString()} $name",
-                                                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
                                                 ),
                                                 Text(
                                                   "Go to $name",
@@ -156,8 +168,8 @@ class MyAppState extends State<MyApp> {
                                           ],
                                         ),
                                         Padding(
-                                          padding: EdgeInsets.only(left: 9),
-                                          child: Icon(Icons.keyboard_arrow_right),
+                                          padding: const EdgeInsets.only(left: 10),
+                                          child: button,
                                         )
                                       ],
                                     ),
@@ -186,12 +198,191 @@ class MyAppState extends State<MyApp> {
                             }
                           }
                           switch (screenIndex) {
-                            case 0: return Container(
+                            case 0:
+                              DateTime time = DateTime.fromMillisecondsSinceEpoch(engine.lastUpdateTime);
+                              return Container(
                               child: SingleChildScrollView(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
-                                    !engine.loadOnLaunch?Card(
+                                    Row(
+                                      children: [
+                                        metricCard(
+                                            "emails",
+                                            engine.users.length,
+                                            1,
+                                            engine.domainsLoading?Icon(Icons.cloud_sync_rounded,color: Colors.grey,):IconButton(
+                                                onPressed: () {
+                                                  engine.toOpenUCM = true;
+                                                  setState(() {
+                                                    screenIndex = 1;
+                                                  });
+                                                },
+                                                icon: const Icon(Icons.add_rounded)
+                                            )
+                                        ),
+                                        metricCard(
+                                            "servers",
+                                            engine.domains.length,
+                                            2,
+                                            engine.domainsLoading?Icon(Icons.cloud_sync_rounded,color: Colors.grey,):IconButton(
+                                                onPressed: () {
+                                                  engine.toOpenDCM = true;
+                                                  setState(() {
+                                                    screenIndex = 2;
+                                                  });
+                                                },
+                                                icon: const Icon(Icons.add_rounded)
+                                            )
+                                        ),
+                                        metricCard(
+                                            "labels",
+                                            engine.labels.length,
+                                            3,
+                                            engine.domainsLoading?Icon(Icons.cloud_sync_rounded,color: Colors.grey,):IconButton(
+                                                onPressed: () {
+                                                  engine.toOpenLCM = true;
+                                                  setState(() {
+                                                    screenIndex = 3;
+                                                  });
+                                                },
+                                                icon: const Icon(Icons.add_rounded)
+                                            )
+                                        ),
+                                      ],
+                                    ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Card(
+                                            clipBehavior: Clip.hardEdge,
+                                            elevation: 2,
+                                            child: InkWell(
+                                              onTap: () {
+                                                setState(() {
+                                                  screenIndex = 6;
+                                                });
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(15),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            const Text(
+                                                              "Proxy",
+                                                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                            ),
+                                                            Text(
+                                                              engine.proxyStatus,
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const Padding(
+                                                      padding: EdgeInsets.only(left: 9),
+                                                      child: Icon(Icons.keyboard_arrow_right),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Card(
+                                            clipBehavior: Clip.hardEdge,
+                                            elevation: 2,
+                                            child: InkWell(
+                                              onTap: () {
+                                                setState(() {
+                                                  screenIndex = 4;
+                                                });
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(15),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            const Text(
+                                                              "Voiso agents",
+                                                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                            ),
+                                                            Text(
+                                                              engine.balance == 0? "Not configured"
+                                                              :engine.voisoUserCount == 0? "Loading agents..."
+                                                                  :"${engine.voisoUserCount.toString()} agents",
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const Padding(
+                                                      padding: EdgeInsets.only(left: 9),
+                                                      child: Icon(Icons.keyboard_arrow_right),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Card(
+                                            clipBehavior: Clip.hardEdge,
+                                            elevation: 2,
+                                            child: InkWell(
+                                              onTap: () {
+                                                setState(() {
+                                                  screenIndex = 4;
+                                                });
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(15),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(
+                                                              "${engine.voisoClusters.length} voiso cluster${engine.voisoClusters.length%10==1?"":"s"}",
+                                                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                            ),
+                                                            Text(
+                                                              engine.balance == 0? "Not configured"
+                                                                  :"${engine.balance.toString()}\$ total",
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const Padding(
+                                                      padding: EdgeInsets.only(left: 9),
+                                                      child: Icon(Icons.keyboard_arrow_right),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    !engine.loadOnLaunch
+                                        ?Card(
                                       elevation: 2,
                                       child: Padding(
                                         padding: const EdgeInsets.all(15),
@@ -201,7 +392,7 @@ class MyAppState extends State<MyApp> {
                                             Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(
+                                                const Text(
                                                   "Loading...",
                                                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                                 ),
@@ -211,13 +402,80 @@ class MyAppState extends State<MyApp> {
                                               ],
                                             ),
                                             CircularProgressIndicator(
+                                              value: engine.loadPercent,
                                               backgroundColor: Colors.transparent,
+                                              strokeCap: StrokeCap.round,
                                               color: Theme.of(context).colorScheme.primary,
                                             )
                                           ],
                                         ),
                                       ),
-                                    ):Container(),
+                                    )
+                                        :Row(
+                                      children: [
+                                        Expanded(
+                                          child: Card(
+                                            elevation: 2,
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(15),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        (DateTime.now().millisecondsSinceEpoch - engine.lastUpdateTime)/10000 > 1?engine.updateStatus:"Updated!",
+                                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                      ),
+                                                      Text(
+                                                        (DateTime.now().millisecondsSinceEpoch - engine.lastUpdateTime)/10000 > 1?"Started updating ${time.add(Duration(seconds: 10)).timeAgo(numericDates: false)}":"Updated ${time.timeAgo(numericDates: false)}",
+                                                      )
+                                                    ],
+                                                  ),
+                                                  CircularProgressIndicator(
+                                                    value: (DateTime.now().millisecondsSinceEpoch - engine.lastUpdateTime)/10000 > 1?engine.updatePercent:(DateTime.now().millisecondsSinceEpoch - engine.lastUpdateTime)/10000,
+                                                    backgroundColor: Colors.transparent,
+                                                    strokeCap: StrokeCap.round,
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        engine.recentRemoteCreate.isEmpty?Container(width: 0,):Expanded(child: Card(
+                                          elevation: 2,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(15),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      "Recently ${engine.recentRemoteCreate["action"].toLowerCase().replaceAll("ing","ed")}",
+                                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                    ),
+                                                    Container(
+                                                      constraints: BoxConstraints(
+                                                          maxWidth: scaffoldWidth / 2 - 80
+                                                      ),
+                                                      child: Text(
+                                                        engine.recentRemoteCreate["name"],
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    )
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ))
+                                      ],
+                                    ),
                                     unavailables.isNotEmpty ? Card(
                                       color: MaterialStateColor.resolveWith((states) => Theme.of(context).colorScheme.errorContainer),
                                       clipBehavior: Clip.hardEdge,
@@ -240,7 +498,7 @@ class MyAppState extends State<MyApp> {
                                               Row(
                                                 mainAxisAlignment: MainAxisAlignment.start,
                                                 children: [
-                                                  Padding(padding: EdgeInsets.only(right: 10), child: Icon(Icons.warning_rounded)),
+                                                  const Padding(padding: EdgeInsets.only(right: 10), child: Icon(Icons.warning_rounded)),
                                                   Column(
                                                     crossAxisAlignment: CrossAxisAlignment.start,
                                                     children: [
@@ -252,7 +510,7 @@ class MyAppState extends State<MyApp> {
                                                       )
                                                     ],
                                                   ),
-                                                  Icon(Icons.keyboard_arrow_right_rounded)
+                                                  const Icon(Icons.keyboard_arrow_right_rounded)
                                                 ],
                                               )
                                             ],
@@ -260,276 +518,18 @@ class MyAppState extends State<MyApp> {
                                         ),
                                       ),
                                     ) : Container(),
-                                    Row(
-                                      children: [
-                                        metricCard("users", engine.allUsers.length, 1, Icon(Icons.person_rounded)),
-                                        metricCard("domains", engine.creationDomains.length, 2, Icon(Icons.dns_rounded)),
-                                        metricCard("labels", engine.labels.length, 2, Icon(Icons.label_rounded)),
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Card(
-                                            clipBehavior: Clip.hardEdge,
-                                            elevation: 2,
-                                            child: InkWell(
-                                              onTap: () {
-                                                screenIndex = 1;
-                                                engine.multiUserCreate = false;
-                                                engine.glowDomains = {};
-                                                engine.selectedLabels.clear();
-                                                engine.userDomains.clear();
-                                                engine.userErrors = [];
-                                                engine.creationDomains = [];
-                                                engine.userL.text = "";
-                                                engine.userP.text = "";
-                                                engine.userErrors.add("Enter valid username");
-                                                engine.userErrors.add("No domains selected");
-                                                for(int i=0;i<engine.domains.length;i++){
-                                                  for(int a=0;a<engine.domains[engine.domains.keys.toList()[i]].length;a++){
-                                                    var curDomain = engine.domains[engine.domains.keys.toList()[i]][a];
-                                                    curDomain["server"] = engine.domains.keys.toList()[i];
-                                                    if(engine.known.containsKey(engine.domains.keys.toList()[i])){
-                                                      engine.creationDomains.add(curDomain);
-                                                    }
-                                                  }
-                                                }
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(builder: (context) => NewUserPage()),
-                                                );
-                                              },
-                                              child: const Padding(
-                                                padding: EdgeInsets.all(15),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Padding(
-                                                          padding: EdgeInsets.only(right:9),
-                                                          child: Icon(Icons.person_outline_rounded),
-                                                        ),
-                                                        Text(
-                                                          "Add user",
-                                                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    Padding(
-                                                      padding: EdgeInsets.only(left: 9),
-                                                      child: Icon(Icons.add_rounded),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Card(
-                                            clipBehavior: Clip.hardEdge,
-                                            elevation: 2,
-                                            child: InkWell(
-                                              onTap: () {
-                                                screenIndex = 2;
-                                                engine.tempL.text = "";
-                                                engine.tempA.text = "";
-                                                engine.tempU.text = "";
-                                                engine.tempP.text = "";
-                                                engine.tempPanelAddReady = false;
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(builder: (context) => NewServerPage()),
-                                                );
-                                              },
-                                              child: const Padding(
-                                                padding: EdgeInsets.all(15),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Padding(
-                                                          padding: EdgeInsets.only(right:9),
-                                                          child: Icon(Icons.dns_outlined),
-                                                        ),
-                                                        Text(
-                                                          "Add server",
-                                                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    Padding(
-                                                      padding: EdgeInsets.only(left: 9),
-                                                      child: Icon(Icons.add_rounded),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Card(
-                                            clipBehavior: Clip.hardEdge,
-                                            elevation: 2,
-                                            child: InkWell(
-                                              onTap: () {
-                                                screenIndex = 3;
-                                                engine.creationDomains.clear();
-                                                engine.tempLabel.clear();
-                                                engine.labelName.text = "";
-                                                for(int i=0;i<engine.domains.length;i++){
-                                                  for(int a=0;a<engine.domains[engine.domains.keys.toList()[i]].length;a++){
-                                                    var curDomain = engine.domains[engine.domains.keys.toList()[i]][a];
-                                                    curDomain["server"] = engine.domains.keys.toList()[i];
-                                                    if(engine.known.containsKey(engine.domains.keys.toList()[i])){
-                                                      engine.creationDomains.add(curDomain);
-                                                    }
-                                                  }
-                                                }
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(builder: (context) => EditLabelPage()),
-                                                );
-                                              },
-                                              child: const Padding(
-                                                padding: EdgeInsets.all(15),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Padding(
-                                                          padding: EdgeInsets.only(right:9),
-                                                          child: Icon(Icons.label_outline_rounded),
-                                                        ),
-                                                        Text(
-                                                          "Add label",
-                                                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    Padding(
-                                                      padding: EdgeInsets.only(left: 9),
-                                                      child: Icon(Icons.add_rounded),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Card(
-                                            clipBehavior: Clip.hardEdge,
-                                            elevation: 2,
-                                            child: InkWell(
-                                              onTap: () {
-                                                setState(() {
-                                                  screenIndex = 6;
-                                                });
-                                              },
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(15),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Padding(
-                                                          padding: EdgeInsets.only(right:9),
-                                                          child: Icon(Icons.vpn_lock_rounded),
-                                                        ),
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Text(
-                                                              "Proxy",
-                                                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
-                                                            ),
-                                                            Text(
-                                                              engine.proxyStatus,
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    Padding(
-                                                      padding: EdgeInsets.only(left: 9),
-                                                      child: Icon(Icons.keyboard_arrow_right),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Card(
-                                            clipBehavior: Clip.hardEdge,
-                                            elevation: 2,
-                                            child: InkWell(
-                                              onTap: () {
-                                                setState(() {
-                                                  screenIndex = 6;
-                                                });
-                                              },
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(15),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Padding(
-                                                          padding: EdgeInsets.only(right:9),
-                                                          child: Icon(Icons.dialer_sip_rounded),
-                                                        ),
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Text(
-                                                              "Voiso",
-                                                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
-                                                            ),
-                                                            Text(
-                                                              (engine.voisoKeyCenter.text.isEmpty&&engine.voisoKeyUser.text.isEmpty&&engine.voisoCluster.text.isEmpty)
-                                                                  ?"Not configured"
-                                                                  :"${engine.voisoCluster.text}, ${engine.balance.toString()}\$",
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    Padding(
-                                                      padding: EdgeInsets.only(left: 9),
-                                                      child: Icon(Icons.keyboard_arrow_right),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                      ],
-                                    ),
                                   ],
                                 ),
                               ),
                             );
-                            case 1: return UsersPage(); // FastPanel Mailboxes
-                            case 2: return ServersPage(); // FastPanel Instances
-                            case 3: return LabelsPage(); // FastPanel Instances
-                            case 4: return AgentsPage(); // Voiso Agents
-                            case 5: return LogsPage(); // Logs
-                            default: return SettingsPage(); // App Settings
+                            case 1: return const UsersPage(); // FastPanel Mailboxes
+                            case 2: return const ServersPage(); // FastPanel Instances
+                            case 3: return const LabelsPage(); // FastPanel Instances
+                            case 4: return const AgentsPage(); // Voiso Agents
+                            case 5: return const VoisoClusters(); // Voiso Clusters
+                            case 6: return const NumberCheckPage(); // Numbercheck
+                            case 7: return const LogsPage(); // Logs
+                            default: return const SettingsPage(); // App Settings
                           }
                         },
                       ),

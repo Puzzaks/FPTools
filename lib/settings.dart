@@ -62,7 +62,7 @@ class SettingsPageState extends State<SettingsPage> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    const Text(
                                       "Loading...",
                                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                     ),
@@ -72,7 +72,9 @@ class SettingsPageState extends State<SettingsPage> {
                                   ],
                                 ),
                                 CircularProgressIndicator(
+                                  value: engine.loadPercent,
                                   backgroundColor: Colors.transparent,
+                                  strokeCap: StrokeCap.round,
                                   color: Theme.of(context).colorScheme.primary,
                                 )
                               ],
@@ -124,21 +126,21 @@ class SettingsPageState extends State<SettingsPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      "Check for duplicates",
+                                      "Allow clipboard reading",
                                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                     ),
                                     Text(
-                                      "Disallow creation of existing users",
+                                      "Copy text from clipboard when creating user",
                                     )
                                   ],
                                 ),
                                 Switch(
                                   thumbIcon: thumbIcon,
-                                  value: engine.allowDuplicates,
+                                  value: engine.allowClipboard,
                                   onChanged: (bool value) {
                                     setState(() {
-                                      engine.allowDuplicates = value;
-                                      engine.saveToggle("allowDuplicates", value);
+                                      engine.allowClipboard = value;
+                                      engine.saveToggle("allowClipboard", value);
                                       engine.filterUsers();
                                     });
                                   },
@@ -226,13 +228,13 @@ class SettingsPageState extends State<SettingsPage> {
                                         children: [
                                           Expanded(
                                             child: Padding(
-                                              padding: EdgeInsets.only(left:5, top: 10,bottom: 5, right: 5),
+                                              padding: const EdgeInsets.only(left:5, top: 10,bottom: 5, right: 5),
                                               child: TextField(
                                                 controller: engine.proxyAddr,
                                                 onChanged: (value) {
                                                   engine.saveProxy();
                                                 },
-                                                decoration: InputDecoration(
+                                                decoration: const InputDecoration(
                                                   prefixIcon: Icon(Icons.link_rounded),
                                                   labelText: 'IP',
                                                   border: OutlineInputBorder(),
@@ -242,13 +244,13 @@ class SettingsPageState extends State<SettingsPage> {
                                           ),
                                           Expanded(
                                             child: Padding(
-                                              padding: EdgeInsets.only(left:5, top: 10,bottom: 5, right: 5),
+                                              padding: const EdgeInsets.only(left:5, top: 10,bottom: 5, right: 5),
                                               child: TextField(
                                                 controller: engine.proxyPort,
                                                 onChanged: (value) {
                                                   engine.saveProxy();
                                                 },
-                                                decoration: InputDecoration(
+                                                decoration: const InputDecoration(
                                                   prefixIcon: Icon(Icons.link_rounded),
                                                   labelText: 'Port',
                                                   border: OutlineInputBorder(),
@@ -262,13 +264,13 @@ class SettingsPageState extends State<SettingsPage> {
                                         children: [
                                           Expanded(
                                             child: Padding(
-                                              padding: EdgeInsets.only(left:5, top: 5,bottom: 5,right: 5),
+                                              padding: const EdgeInsets.only(left:5, top: 5,bottom: 5,right: 5),
                                               child: TextField(
                                                 controller: engine.proxyUser,
                                                 onChanged: (value) {
                                                   engine.saveProxy();
                                                 },
-                                                decoration: InputDecoration(
+                                                decoration: const InputDecoration(
                                                   prefixIcon: Icon(Icons.person_rounded),
                                                   labelText: 'Login',
                                                   border: OutlineInputBorder(),
@@ -278,13 +280,13 @@ class SettingsPageState extends State<SettingsPage> {
                                           ),
                                           Expanded(
                                               child: Padding(
-                                                padding: EdgeInsets.only(left:5, right:5, top: 5,bottom: 5),
+                                                padding: const EdgeInsets.only(left:5, right:5, top: 5,bottom: 5),
                                                 child: TextField(
                                                   controller: engine.proxyPassword,
                                                   onChanged: (value) {
                                                     engine.saveProxy();
                                                   },
-                                                  decoration: InputDecoration(
+                                                  decoration: const InputDecoration(
                                                     prefixIcon: Icon(Icons.password_rounded),
                                                     labelText: 'Password',
                                                     border: OutlineInputBorder(),
@@ -323,79 +325,50 @@ class SettingsPageState extends State<SettingsPage> {
                         Card(
                           elevation: 2,
                           child: Padding(
-                              padding: const EdgeInsets.all(15),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "Voiso Settings",
-                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                          ),
-                                          Text(
-                                            "Enter credentials for Voiso",
-                                          )
-                                        ],
-                                      ),
-                                      Container(
-                                        width: 200,
-                                        child: Padding(
-                                          padding: EdgeInsets.only(left:5,bottom: 5),
-                                          child: TextField(
-                                            controller: engine.voisoCluster,
-                                            onChanged: (value) {
-                                              engine.saveVoisoKeys();
-                                            },
-                                            decoration: InputDecoration(
-                                              prefixIcon: Icon(Icons.dashboard),
-                                              labelText: 'Cluster ID',
-                                              border: OutlineInputBorder(),
+                            padding: const EdgeInsets.all(15),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Row(
+                                      children: [
+                                        Padding(
+                                          padding: EdgeInsets.only(right: 10),
+                                          child: Icon(Icons.restart_alt_rounded),
+                                        ),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "Restart the app",
+                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                             ),
-                                          ),
+                                            Text(
+                                              "If you have issues loading anything",
+                                            ),
+                                          ],
                                         ),
-                                      )
-                                    ],
-                                  ),
-                                  Column(
-                                    children: [
-                                      Padding(
-                                        padding: EdgeInsets.only(top: 5,bottom: 5,),
-                                        child: TextField(
-                                          controller: engine.voisoKeyUser,
-                                          onChanged: (value) {
-                                            engine.saveVoisoKeys();
-                                          },
-                                          decoration: InputDecoration(
-                                            prefixIcon: Icon(Icons.person_rounded),
-                                            labelText: 'User Key',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsets.only(top: 5,bottom: 5, ),
-                                        child: TextField(
-                                          controller: engine.voisoKeyCenter,
-                                          onChanged: (value) {
-                                            engine.saveVoisoKeys();
-                                          },
-                                          decoration: InputDecoration(
-                                            prefixIcon: Icon(Icons.corporate_fare_rounded),
-                                            labelText: 'Center Key',
-                                            border: OutlineInputBorder(),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              )
+                                      ],
+                                    ),
+                                    FilledButton(
+                                        onPressed: engine.loading? null: () {
+                                          engine.loadOnLaunch = false;
+                                          engine.fetchTimer.reset();
+                                          engine.fetchTimer.cancel();
+                                          engine.launch();
+                                        },
+                                        child: Text(
+                                          engine.loading?"Loading...":'Restart',
+                                          style: TextStyle(color: Theme.of(context).colorScheme.background),
+                                        )),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                        ), // Voiso
+                        )
                       ],
                     ),
                   ),

@@ -33,6 +33,30 @@ class LabelsPageState extends State<LabelsPage> {
         themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: Consumer<fastEngine>(builder: (context, engine, child) {
+          if(engine.toOpenLCM){
+            engine.toOpenLCM = false;
+            engine.fetchTimer.reset();
+            engine.creationDomains.clear();
+            engine.userCreateMode = true;
+            engine.tempLabel.clear();
+            engine.labelName.text = "";
+            for(int i=0;i<engine.domains.length;i++){
+              for(int a=0;a<engine.domains[engine.domains.keys.toList()[i]].length;a++){
+                var curDomain = engine.domains[engine.domains.keys.toList()[i]][a];
+                curDomain["server"] = engine.domains.keys.toList()[i];
+                if(engine.known.containsKey(engine.domains.keys.toList()[i])){
+                  engine.creationDomains.add(curDomain);
+                }
+              }
+            }
+            Future.delayed(Duration.zero, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EditLabelPage()),
+              );
+            });
+          }
+          engine.userCreateMode = false;
           List unavailables = [];
           for(int i=0;i<engine.availables.length;i++){
             if(!engine.availables[engine.availables.keys.toList()[i]]){
@@ -43,9 +67,10 @@ class LabelsPageState extends State<LabelsPage> {
             double scaffoldHeight = constraints.maxHeight;
             double scaffoldWidth = constraints.maxWidth;
             return Scaffold(
-              floatingActionButton: FloatingActionButton(
+              floatingActionButton: engine.domainsLoading?null:FloatingActionButton(
                 onPressed: () {
                   engine.creationDomains.clear();
+                  engine.userCreateMode = true;
                   engine.tempLabel.clear();
                   engine.labelName.text = "";
                   for(int i=0;i<engine.domains.length;i++){
@@ -59,41 +84,41 @@ class LabelsPageState extends State<LabelsPage> {
                   }
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => EditLabelPage()),
+                    MaterialPageRoute(builder: (context) => const EditLabelPage()),
                   );
                 },
                 tooltip: "Add label",
-                child: Icon(Icons.add_rounded),
+                child: const Icon(Icons.add_rounded),
               ),
               body: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: EdgeInsets.all(5),
-                    child: TextField(
-                      controller: engine.labelSearch,
-                      onChanged: (value) {
-                        // engine.filterUsers();
-                      },
-                      decoration: InputDecoration(
-                        suffixIcon: Padding(
-                          padding: EdgeInsets.only(right: 5),
-                          child: engine.labelSearch.text.isNotEmpty
-                              ? IconButton(
-                              onPressed: () {
-                                engine.labelSearch.clear();
-                              },
-                              icon: Icon(Icons.clear_rounded)
-                          ) : null,
-                        ),
-                        prefixIcon: Icon(Icons.search_rounded),
-                        labelText: 'Search labels',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
-                      ),
-                    ),
-                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.all(5),
+                  //   child: TextField(
+                  //     controller: engine.labelSearch,
+                  //     onChanged: (value) {
+                  //       // engine.filterUsers();
+                  //     },
+                  //     decoration: InputDecoration(
+                  //       suffixIcon: Padding(
+                  //         padding: const EdgeInsets.only(right: 5),
+                  //         child: engine.labelSearch.text.isNotEmpty
+                  //             ? IconButton(
+                  //             onPressed: () {
+                  //               engine.labelSearch.clear();
+                  //             },
+                  //             icon: const Icon(Icons.clear_rounded)
+                  //         ) : null,
+                  //       ),
+                  //       prefixIcon: const Icon(Icons.search_rounded),
+                  //       labelText: 'Search labels',
+                  //       border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
+                  //     ),
+                  //   ),
+                  // ),
                   Container(
-                    height: engine.labels.isEmpty?null:scaffoldHeight - 66,
+                    height: engine.labels.isEmpty?null:scaffoldHeight,
                     child: SingleChildScrollView(
                       scrollDirection: Axis.vertical,
                       child: Column(
@@ -121,7 +146,7 @@ class LabelsPageState extends State<LabelsPage> {
                                               children: [
                                                 Text(
                                                   label["name"]??"Error loading name",
-                                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                                 ),
                                                 Text(
                                                   "${label["domains"].length} domains",
@@ -137,18 +162,20 @@ class LabelsPageState extends State<LabelsPage> {
                                                   setState(() {
                                                     engine.labels.swap(thisIndex, thisIndex - 1);
                                                   });
+                                                  engine.saveLabels();
                                                 }:null,
-                                                icon: Icon(Icons.arrow_upward_rounded)
+                                                icon: const Icon(Icons.arrow_upward_rounded)
                                             ),
                                             IconButton(
                                                 onPressed: thisIndex < (engine.labels.length - 1)?() {
                                                   setState(() {
                                                     engine.labels.swap(thisIndex, thisIndex + 1);
                                                   });
+                                                  engine.saveLabels();
                                                 }:null,
-                                                icon: Icon(Icons.arrow_downward_rounded)
+                                                icon: const Icon(Icons.arrow_downward_rounded)
                                             ),
-                                            FilledButton(
+                                            IconButton(
                                                 onPressed: () {
                                                   engine.creationDomains.clear();
                                                   for(int i=0;i<engine.domains.length;i++){
@@ -161,6 +188,7 @@ class LabelsPageState extends State<LabelsPage> {
                                                     }
                                                   }
                                                   engine.labelName.text = label["name"]??"";
+                                                  engine.userCreateMode = true;
                                                   engine.tempLabel = label;
                                                   for(int i = 0; i < label["domains"].length; i++){
                                                     if(!engine.tempLabel["domains"].contains(label["domains"][i])){
@@ -169,13 +197,25 @@ class LabelsPageState extends State<LabelsPage> {
                                                   }
                                                   Navigator.push(
                                                     context,
-                                                    MaterialPageRoute(builder: (context) => EditLabelPage()),
+                                                    MaterialPageRoute(builder: (context) => const EditLabelPage()),
                                                   );
                                                 },
-                                                child: Text(
-                                                  'Edit',
-                                                  style: TextStyle(color: Theme.of(context).colorScheme.background),
-                                                ))
+                                                icon: const Icon(Icons.edit_rounded)
+                                            ),
+                                            IconButton(
+                                                onPressed: () {
+                                                  int thisIndex = 0;
+                                                  for(int i=0;i<engine.labels.length;i++){
+                                                    if(engine.labels[i]["name"]==label["name"]){
+                                                      thisIndex = i;
+                                                    }
+                                                  }
+                                                  engine.labels.removeAt(thisIndex);
+                                                  engine.saveLabels().then((value){
+                                                  });
+                                                },
+                                                icon: const Icon(Icons.delete_rounded)
+                                            ),
                                           ],
                                         ),
                                       ],
@@ -203,6 +243,7 @@ class EditLabelPage extends StatefulWidget {
   @override
   EditLabelPageState createState() => EditLabelPageState();
 }
+
 class EditLabelPageState extends State<EditLabelPage> {
   @override
   void initState() {
@@ -211,14 +252,22 @@ class EditLabelPageState extends State<EditLabelPage> {
   bool isColor(String color) {
     RegExp hex = RegExp(
         r'^#([\da-f]{3}){1,2}$|^#([\da-f]{4}){1,2}$|(rgb|hsl)a?\((\s*-?\d+%?\s*,){2}(\s*-?\d+%?\s*,?\s*\)?)(,\s*(0?\.\d+)?|1)?\)');
-    if (hex.hasMatch(color))
+    if (hex.hasMatch(color)) {
       return true;
-    else
+    } else {
       return false;
+    }
   }
 
   @override
   Widget build(BuildContext topContext) {
+    ServicesBinding.instance.keyboard.addHandler((KeyEvent event){
+      if (event is KeyUpEvent && event.logicalKey.keyLabel == "Escape") {
+        Navigator.pop(this.context);
+        return true;
+      }
+      return false;
+    });
     final _defaultLightColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal);
     final _defaultDarkColorScheme = ColorScheme.fromSwatch(primarySwatch: Colors.teal, brightness: Brightness.dark);
     return DynamicColorBuilder(builder: (lightColorScheme, darkColorScheme) {
@@ -238,6 +287,8 @@ class EditLabelPageState extends State<EditLabelPage> {
               themeMode: ThemeMode.system,
               debugShowCheckedModeBanner: false,
               home: Consumer<fastEngine>(builder: (context, engine, child) {
+                engine.userCreateMode = true;
+                engine.fetchTimer.cancel();
                 bool isLabelN = false;
                 bool isLabel(name){
                   for(int i=0;i<engine.labels.length;i++){
@@ -259,17 +310,17 @@ class EditLabelPageState extends State<EditLabelPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Padding(
-                            padding: EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(10),
                             child: Text(
                               isLabelN?"Edit label":"Add new label",
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
                             ),
                           ),
                           Row(
                             children: [
                               Expanded(
                                 child: Padding(
-                                  padding: EdgeInsets.all(5),
+                                  padding: const EdgeInsets.all(5),
                                   child: TextField(
                                     controller: engine.labelName,
                                     onChanged: (value) {
@@ -280,7 +331,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                                     },
                                     decoration: InputDecoration(
                                       suffixIcon: Padding(
-                                        padding: EdgeInsets.only(right: 5),
+                                        padding: const EdgeInsets.only(right: 5),
                                         child: engine.labelName.text.isNotEmpty
                                             ? IconButton(
                                             onPressed: () {
@@ -290,12 +341,12 @@ class EditLabelPageState extends State<EditLabelPage> {
                                                 engine.tempLabel["name"] = "";
                                               });
                                             },
-                                            icon: Icon(Icons.clear_rounded)
+                                            icon: const Icon(Icons.clear_rounded)
                                         ) : null,
                                       ),
-                                      prefixIcon: Icon(Icons.label_rounded),
+                                      prefixIcon: const Icon(Icons.label_rounded),
                                       labelText: 'Label name',
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
+                                      border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
                                     ),
                                   ),
                                 ),
@@ -303,7 +354,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                             ],
                           ),
                           Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                             child: Container(
                               height: scaffoldHeight - (isLabelN?259:189),
                               child: SingleChildScrollView(
@@ -348,7 +399,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                                               backgroundColor: Theme.of(context).colorScheme.errorContainer,
                                               label: Text(
                                                 "${crD["name"]}",
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                     fontWeight: FontWeight.w400,
                                                     color: Colors.grey
                                                 ),
@@ -378,7 +429,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
+                                  const Row(
                                     children: [
                                       Padding(
                                         padding: EdgeInsets.only(right: 10),
@@ -397,11 +448,13 @@ class EditLabelPageState extends State<EditLabelPage> {
                                   ),
                                   FilledButton(
                                       onPressed: () {
+                                        int thisIndex = 0;
                                         for(int i=0;i<engine.labels.length;i++){
                                           if(engine.labels[i]["name"]==engine.labelName.text){
-                                            engine.labels.removeAt(i);
+                                            thisIndex = i;
                                           }
                                         }
+                                      engine.labels.removeAt(thisIndex);
                                         engine.saveLabels().then((value){
                                           Navigator.pop(topContext);
                                         });
@@ -421,7 +474,7 @@ class EditLabelPageState extends State<EditLabelPage> {
                       )
                           : Container(),
                       Padding(
-                        padding: EdgeInsets.all(15),
+                        padding: const EdgeInsets.all(15),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -438,15 +491,31 @@ class EditLabelPageState extends State<EditLabelPage> {
                             FilledButton(
                                 onPressed: (engine.labelName.text.isNotEmpty)
                                   ? (){
-                                  engine.labels.add({
-                                    "name": engine.labelName.text,
-                                    "domains": engine.tempLabel["domains"]
-                                  });
+                                  int thisIndex = 0;
+                                  bool isNew = true;
+                                  for(int i=0;i<engine.labels.length;i++){
+                                    if(engine.labels[i]["name"]==engine.labelName.text){
+                                      thisIndex = i;
+                                      isNew = false;
+                                    }
+                                  }
+                                  if(isNew){
+                                    engine.labels.add({
+                                      "name": engine.labelName.text,
+                                      "domains": engine.tempLabel["domains"]
+                                    });
+                                  }else{
+                                    engine.labels[thisIndex] = {
+                                      "name": engine.labelName.text,
+                                      "domains": engine.tempLabel["domains"]
+                                    };
+                                  }
+
                                   engine.saveLabels().then((value){
                                     Navigator.pop(topContext);
                                   });
                                 } : null,
-                                child: Text(
+                                child: const Text(
                                     "Save label"
                                 )
                             ),
@@ -460,5 +529,9 @@ class EditLabelPageState extends State<EditLabelPage> {
             );
           });
     });
+  }
+  @override
+  void dispose() {
+    super.dispose();
   }
 }

@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'network.dart';
 import 'package:http/http.dart' as http;
+import 'package:async/async.dart';
 
 class Translit {
   final _transliteratedSymbol = <String, String>{
@@ -126,6 +127,11 @@ class Translit {
 
 class fastEngine extends HttpOverrides with material.ChangeNotifier{
   material.TextEditingController userSearch = material.TextEditingController(text: "");
+  material.TextEditingController voisoSearch = material.TextEditingController(text: "");
+  material.TextEditingController voisoUserName = material.TextEditingController(text: "");
+  material.TextEditingController voisoUserEmail = material.TextEditingController(text: "");
+  material.TextEditingController voisoUserPassword = material.TextEditingController(text: "");
+  material.TextEditingController voisoUserExtension = material.TextEditingController(text: "");
   material.TextEditingController serverSearch = material.TextEditingController(text: "");
   material.TextEditingController labelSearch = material.TextEditingController(text: "");
   material.TextEditingController updatePassword = material.TextEditingController();
@@ -146,49 +152,74 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   material.TextEditingController voisoCluster = material.TextEditingController();
   Map known = {};
   Map displayKnown = {};
-  List allUsers = [];
   Map logins = {};
-  List logs = [];
   Map availables = {};
-  List users = [];
   Map filtered = {};
   Map domains = {};
   Map availdomains = {};
+  Map proxy = {};
+  Map tempLabel = {};
+  Map glowDomains = {};
+  Map voisoUser = {};
+  List allUsers = [];
+  List logs = [];
+  List users = [];
   List toUpdate = [];
   Map domainUsers = {};
   List domainNames = [];
   List doubleDomains = [];
   List userDomains = [];
   List creationDomains = [];
-  String action = "Loading...";
-  bool loading = false;
-  bool loadOnLaunch = false;
-  bool displayUsers = true;
-  bool allowDuplicates = true;
-  bool remoteRWMode = false;
   List selectedUsers = [];
   List selectedGroups = [];
   List newbieDomains = [];
   List userErrors = [];
+  List labels = [];
+  List labelDomains = [];
+  List selectedLabels = [];
+  String globalPassword = md5.convert(utf8.encode(md5.convert(utf8.encode("113245-FPT")).toString())).toString();
+  String action = "Loading...";
   String userMessage = "Leave password field empty for random password";
+  String proxyStatus = "Loading...";
+  String voisoStatus = "";
+  bool loading = false;
+  bool loadOnLaunch = false;
+  bool displayUsers = true;
+  bool allowClipboard = true;
+  bool remoteRWMode = false;
   bool tempPanelAddReady = false;
   bool tempPanelAddloading = false;
   bool loggedIn = false;
-  String globalPassword = md5.convert(utf8.encode(md5.convert(utf8.encode("113245-FPT")).toString())).toString();
   bool isProxyUsed = false;
-  Map proxy = {};
-  String proxyStatus = "Loading...";
-  String voisoStatus = "";
   bool voisoLoading = true;
   bool emaisLoading = true;
   bool domainsLoading = true;
-  List labels = [];
-  List labelDomains = [];
-  Map tempLabel = {};
-  Map glowDomains = {};
-  List selectedLabels = [];
   bool multiUserCreate = false;
+  bool voisoCorrect = false;
+  bool clusterValid = false;
+  bool userValid = false;
+  bool centerValid = false;
+  bool userCreateMode = false;
   double balance = 0.0;
+  int lastUpdateTime = 0;
+  Map updateTimes = {};
+  Map recentRemoteCreate = {};
+  RestartableTimer fetchTimer = RestartableTimer(Duration(seconds: 10), (){});
+  String serverAddr = "";
+  List existDomains = [];
+  bool toOpenUCM = false;
+  bool toOpenDCM = false;
+  bool toOpenLCM = false;
+  String updateStatus = "";
+  double updatePercent = 0;
+  double loadPercent = 0;
+  int voisoUserCount = 0;
+  Map voisoClusters = {};//cluster id > clusterkey, userkey, clusterid
+  Map voisoBalances = {};
+  Map voisoUsers = {}; //cluster > users
+  Map voisoTeams = {};
+  Set activeVoisoClusters = {};
+  List filteredVoisoAgents = [];
 
   String decrypt(Encrypted encryptedData) {
     final key = Key.fromUtf8(globalPassword);
@@ -246,13 +277,14 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     return output;
   }
   launch() async {
+    loadPercent = 0;
     await WindowManager.instance.ensureInitialized();
     windowManager.waitUntilReadyToShow().then((_) async {
       await windowManager.setTitle("OneTool: $action");
     });
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     loading = true;
-    ignite();
+    loadPercent = 0;
     await logAdd("Checking proxy...", "info", "startup", false);
     if(prefs.containsKey("isProxyUsed")){
       isProxyUsed = prefs.getBool("isProxyUsed")??false;
@@ -288,18 +320,30 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       notifyListeners();
       HttpOverrides.global = CertificateOverride();
     }
+    loadPercent = 0.05;
     pingServer().then((value) async {
-      if(value){ //if online
+      if(value.isNotEmpty){//if online
+        serverAddr = value;
         await logAdd("Checking version...", "info", "startup", false);
         await getAppData().then((value){
 
         });
-
         await logAdd("Downloading data...", "info", "startup", false);
-        await getData("known").then((value) async {
+        await getData(serverAddr, "known").then((value) async {
+          loadPercent = 0.1;
           known = jsonDecode(decrypt(Encrypted.fromBase64(value)));
         });
-        await getData("domains").then((value) async {
+        await getData(serverAddr, "voiso").then((value) async {
+          loadPercent = 0.125;
+          voisoClusters = jsonDecode(decrypt(Encrypted.fromBase64(value)));
+          ignite();
+        });
+        await getData(serverAddr, "labels").then((value) async {
+          loadPercent = 0.15;
+          labels = jsonDecode(decrypt(Encrypted.fromBase64(value)));
+        });
+        await getData(serverAddr, "domains").then((value) async {
+          loadPercent = 0.2;
           domains = jsonDecode(decrypt(Encrypted.fromBase64(value)));
           for(int n=0; n<domains.keys.toList().length;n++){
             if(!known.containsKey(domains.keys.toList()[n])){
@@ -307,14 +351,15 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
               domains.remove(domains.keys.toList()[n]);
             }
           }
+          loadPercent = 0.25;
         });
 
         await logAdd("Loading settings...", "info", "startup", false);
         if(prefs.containsKey("displayUsers")){
           displayUsers = prefs.getBool("displayUsers")??true;
         }
-        if(prefs.containsKey("allowDuplicates")){
-          allowDuplicates = prefs.getBool("allowDuplicates")??false;
+        if(prefs.containsKey("allowClipboard")){
+          allowClipboard = prefs.getBool("allowClipboard")??false;
         }
         if(prefs.containsKey("remoteRWMode")){
           remoteRWMode = prefs.getBool("remoteRWMode")??false;
@@ -326,11 +371,12 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
           memLogs = await prefs.getString("logins")??"";
           logins = jsonDecode(decrypt(Encrypted.fromBase64(memLogs)));
         }
-        if(prefs.containsKey("labels")){
-          String memLabels = "";
-          memLabels = prefs.getString("labels")??"";
-          labels = jsonDecode(decrypt(Encrypted.fromBase64(memLabels)));
-        }
+        // if(prefs.containsKey("labels")){
+        //   String memLabels = "";
+        //   memLabels = prefs.getString("labels")??"";
+        //   labels = jsonDecode(decrypt(Encrypted.fromBase64(memLabels)));
+        // }
+        loadPercent = 0.33;
         for(int i=0; i<known.length;i++){
           var keyVar = known[known.keys.toList()[i]]["addr"];
           await logAdd("Checking connection to $keyVar...", "info", "startup", false);
@@ -340,6 +386,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
             if(value){
               checkLogin(keyVar);
             }
+            loadPercent = ((i+1)/known.length)/3 + 0.33;
           });
         }
         filterServers();
@@ -347,9 +394,15 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
 
         await logAdd("Loading users...", "info", "startup", false);
         await getAllUsers().then((value){
-          filterUsers();
         });
-
+        lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
+        fetchTimer = RestartableTimer(
+          Duration(seconds: 10),
+            (){
+              checkFetchData();
+            }
+        );
+        fetchTimer.reset();
         domainsLoading = false;
         emaisLoading = false;
         loading = false;
@@ -359,6 +412,69 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         await logAdd("Main server is unreachable. What are you doing?", "error", "startup", false);
       }
     });
+  }
+  checkFetchData() async{
+    if(userCreateMode){
+      // await logAdd("Skipping data refresh...", "info", "getting", false);
+    }else{
+      // await logAdd("Refreshing data...", "info", "getting", false);
+      await getData(serverAddr, "known").then((value) async {
+        known = jsonDecode(decrypt(Encrypted.fromBase64(value)));
+      });
+      await getData(serverAddr, "labels").then((value) async {
+        labels = jsonDecode(decrypt(Encrypted.fromBase64(value)));
+      });
+      await getData(serverAddr, "domains").then((value) async {
+        domains = jsonDecode(decrypt(Encrypted.fromBase64(value)));
+      });
+      // await logAdd("Reading updates...", "info", "getting", false);
+      await getAllUpdates();
+      // await logAdd("Data is up to date!", "info", "getting", false);
+    }
+    lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
+    await windowManager.setTitle("");
+    fetchTimer.reset();
+  }
+  Future<List> getAllUpdates() async {
+    fetchTimer.cancel();
+    bool needsUpdate = false;
+    updateStatus = "Getting updates...";
+    for(int i=0; i<known.length;i++){
+      updatePercent = (i+1)/known.length;
+      var keyVar = known[known.keys.toList()[i]]["addr"];
+      if(!domains.containsKey(keyVar)){
+        domains[keyVar] = [];
+      }
+      for(int a=0; a<domains[keyVar].length;a++){
+        if(availables[keyVar]){
+          if(logins.containsKey(keyVar)){
+            await checkLogin(keyVar).then((huh) async {
+              // await logAdd("Getting updates from ${domains[keyVar][a]["name"]}...", "info", "getting", false);
+              await fastpanelActions(keyVar, logins[keyVar]["token"]).then((value) async {
+                if(value["data"].isNotEmpty){
+                  if(value["data"][0]["type"] == "MAILBOX"&&updateTimes.containsKey(value["data"][0]["name"].split("@")[1])){
+                    if(DateTime.fromMillisecondsSinceEpoch(updateTimes[value["data"][0]["name"].split("@")[1]]).isBefore(DateTime.parse(value["data"][0]["created_at"]))){
+                      // await logAdd("User ${value["data"][0]["name"]} was created...", "info", "creating", false);
+                      recentRemoteCreate = value["data"][0];
+                      toUpdate.add(value["data"][0]["name"].split("@")[1]);
+                      needsUpdate = true;
+                    }
+                  }
+                }
+              });
+            });
+          }
+        }
+      }
+    }
+    if(needsUpdate){
+      updatePercent = 0;
+      updateStatus = "Receiving users...";
+      await getAllUsers().then((value){
+      });
+    }
+    fetchTimer.reset();
+    return [];
   }
   Future deleteUser(user) async {
     newbieDomains.clear();
@@ -427,12 +543,18 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
               : generateRandomString(12);
           uname = normUsername(userL.text.split('\n')[h].split("	")[0].split("@")[0].replaceAll("\r", ""));
           if(uname.length > 1){
-            if(userDomains.length==1){
-              multiUserCopy = "$multiUserCopy$uname@${userDomains[0]["name"]}	$pass\n";
+            if(userExists(uname)) {
+              multiUserCopy = "$multiUserCopy	\n";
             }else{
-              multiUserCopy = "$multiUserCopy$uname	$pass\n";
+              if(userDomains.length==1){
+                multiUserCopy = "$multiUserCopy$uname@${userDomains[0]["name"]}	$pass\n";
+              }else{
+                multiUserCopy = "$multiUserCopy$uname	$pass\n";
+              }
+              multiUsers.add({"l":uname,"p":pass});
             }
-            multiUsers.add({"l":uname,"p":pass});
+          }else if(uname == ""){
+            multiUserCopy = "$multiUserCopy	\n";
           }
         }
       }
@@ -483,20 +605,18 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         }
       }
       await getAllUsers().then((value) async {
-        await filterUsers().then((value) async {
-          loading = false;
-          await logAdd("Created ${multiUsers.map((user){return user["l"];}).toList()}.", "info", "creation", false);
-          if(!multiUserCreate){
-            await Clipboard.setData(ClipboardData(text: "${userDomains.length == 1 ? "${normUsername(userL.text)}@${userDomains[0]["name"]}" : normUsername(userL.text)}	$pass"));
-            userSearch.text = uname;
-          }else{
-            await Clipboard.setData(ClipboardData(text: multiUserCopy));
-          }
-          userL.text = "";
-          userP.text = "";
-          filterUsers();
-          return pass;
-        });
+        loading = false;
+        await logAdd("Created ${multiUsers.map((user){return user["l"];}).toList()}.", "info", "creation", false);
+        if(!multiUserCreate){
+          await Clipboard.setData(ClipboardData(text: "${userDomains.length == 1 ? "${normUsername(userL.text)}@${userDomains[0]["name"]}" : normUsername(userL.text)}	$pass"));
+          userSearch.text = uname;
+        }else{
+          await Clipboard.setData(ClipboardData(text: multiUserCopy));
+        }
+        userL.text = "";
+        userP.text = "";
+        filterUsers();
+        return pass;
       });
     return "WTF";
   }
@@ -588,25 +708,54 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     known.remove(tempA.text);
     tempKnown.addAll(known);
     known = tempKnown;
-    await setData("known", encrypt(jsonEncode(known)).base64).then((value){
+    await setData(serverAddr, "known", encrypt(jsonEncode(known)).base64).then((value){
       filterServers();
       return true;
     });
     return false;
   }
   Future<bool> saveLabels() async{
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("labels", encrypt(jsonEncode(labels)).base64);
+    await setData(serverAddr, "labels", encrypt(jsonEncode(labels)).base64).then((value){
+      filterServers();
+      return true;
+    });
     notifyListeners();
     return true;
   }
   Future<bool> saveBrandList() async{
-    await setData("known", encrypt(jsonEncode(known)).base64).then((value){
+    await setData(serverAddr, "known", encrypt(jsonEncode(known)).base64).then((value){
       filterServers();
       return true;
     });
     return false;
   }
+
+  List getUserLabels(domain) {
+    List candidates = [];
+    for(int i=0;i<labels.length;i++){
+      for(int g=0;g<labels[i]["domains"].length;g++){
+        if(labels[i]["domains"][g] == domain){
+          candidates.add(labels[i]["name"]);
+        }
+      }
+    }
+    return candidates;
+  }
+  bool userExists(email){
+    if(allUsers.contains(email.split("@")[0])) {
+      existDomains.clear();
+      for (int i = 0; i < userDomains.length; i++) {
+        for(int b=0; b<domainUsers[userDomains[i]["name"]].length;b++){
+          if(domainUsers[userDomains[i]["name"]][b]["login"] == email.split("@")[0]){
+            existDomains.add(userDomains[i]["name"]);
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   Future<bool> saveProxy() async{
     proxyStatus = "Checking proxy...";
     notifyListeners();
@@ -721,10 +870,11 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     await logAdd("Updated users!", "info", "filtering", false);
   }
   Future<List> getAllUsers() async {
-    users.clear();
+    // users.clear();
     loading = true;
     await logAdd("Loading users...", "info", "users", false);
     for(int i=0; i<known.length;i++){
+      updatePercent = (i+1) / known.length;
       var keyVar = known[known.keys.toList()[i]]["addr"];
       if(!domains.containsKey(keyVar)){
         domains[keyVar] = [];
@@ -736,8 +886,8 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
               await checkLogin(keyVar).then((huh) async {
                 await logAdd("Getting users from ${domains[keyVar][a]["name"]}...", "info", "getting", false);
                 await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value) async {
+                  updateTimes[domains[keyVar][a]["name"]] = DateTime.now().toUtc().millisecondsSinceEpoch;
                   domainUsers[domains[keyVar][a]["name"]] = value["data"];
-                  await filterUsers();
                 });
               });
             }
@@ -747,9 +897,9 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
                 toUpdate.remove(domains[keyVar][a]["name"]);
                 await checkLogin(keyVar).then((huh) async {
                   await logAdd("Getting users from ${domains[keyVar][a]["name"]}...", "info", "getting", false);
-                  await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value){
+                  await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value) async {
+                    updateTimes[domains[keyVar][a]["name"]] = DateTime.now().toUtc().millisecondsSinceEpoch;
                     domainUsers[domains[keyVar][a]["name"]] = value["data"];
-                    filterUsers();
                   });
                 });
               }
@@ -757,7 +907,10 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
           }
         }
       }
+      loadPercent = ((i+1)/known.length)/3 + 0.66;
     }
+    await filterUsers();
+    lastUpdateTime = DateTime.now().millisecondsSinceEpoch;
     toUpdate.clear();
     await windowManager.setTitle("");
     loading = false;
@@ -766,52 +919,207 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   }
   Future<bool> saveDomains() async{
     notifyListeners();
-    setData("domains", encrypt(jsonEncode(domains)).base64);
+    setData(serverAddr, "domains", encrypt(jsonEncode(domains)).base64);
     return true;
   }
 
   ignite() async {
     voisoLoading = true;
     voisoStatus = "Loading settings...";
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    if(prefs.containsKey("voiso")) {
-      String voisoString = "";
-      voisoString = await prefs.getString("voiso") ?? "";
-      Map voisoKeys = jsonDecode(decrypt(Encrypted.fromBase64(voisoString)));
-      voisoCluster.text = voisoKeys["cluster"];
-      voisoKeyUser.text = voisoKeys["user"];
-      voisoKeyCenter.text = voisoKeys["center"];
-    }
-    if(voisoCluster.text.isNotEmpty && voisoKeyCenter.text.isNotEmpty){
-      getVoisoBalance();
-    }
-    // voisoLoading = false;
+    getVoisoBalances();
+    activeVoisoClusters = {...voisoClusters.keys};
+    getVoisoUsers().then((value){
+      getVoisoTeams().then((value){
+        filterVoisoUsers();
+      });
+    });
+    voisoLoading = false;
     voisoStatus = "Loaded";
   }
-  getVoisoBalance(){
-    Timer.periodic(Duration(milliseconds: 1000), (timer) async {
-      var endpoint = "${voisoCluster.text}.voiso.com";
-      var method = "api/v1/${voisoKeyCenter.text}/balance";
+  Future<Map> getVoisoUsers() async {
+    for(int i=0; i < voisoClusters.length;i++){
+      String endpoint = "${voisoClusters.keys.toList()[i]}.voiso.com";
+      var params = {
+        "key": voisoClusters[voisoClusters.keys.toList()[i]]["user"]
+      };
+      String method = "api/v3/cdr/users";
       final response = await http.get(
         Uri.https(
-            endpoint, method
+            endpoint, method, params
         ),
       );
-      balance = jsonDecode(response.body)["balance"];
+      voisoUsers[voisoClusters.keys.toList()[i]] = jsonDecode(response.body);
+    }
+    return voisoUsers;
+  }
+
+  String getTeamName(id){
+    for(int h=0; h < voisoClusters.length;h++) {
+      for (int i = 0; i < voisoTeams[voisoClusters.keys.toList()[h]].length; i++) {
+        if (voisoTeams[voisoClusters.keys.toList()[h]][i]["id"].toString() == id) {
+          return voisoTeams[voisoClusters.keys.toList()[h]][i]["name"];
+        }
+      }
+    }
+    print(id);
+    return "[UNDEFINED]";
+  }
+
+  Future<Map> getVoisoTeams() async {
+    for(int i=0; i < voisoClusters.length;i++){
+      String endpoint = "${voisoClusters.keys.toList()[i]}.voiso.com";
+      var params = {
+        "key": voisoClusters[voisoClusters.keys.toList()[i]]["user"]
+      };
+      String method = "api/v2/cdr/teams";
+      final response = await http.get(
+        Uri.https(
+            endpoint, method, params
+        ),
+      );
+      voisoTeams[voisoClusters.keys.toList()[i]] = jsonDecode(response.body);
+    }
+    return voisoTeams;
+  }
+
+  Future<List> filterVoisoUsers() async {
+    voisoUserCount = 0;
+    filteredVoisoAgents.clear();
+    for(int i=0; i < activeVoisoClusters.length;i++){
+      for(int s=0; s<voisoUsers[activeVoisoClusters.elementAt(i)].length;s++){
+        voisoUserCount++;
+        if (displayUsers) {
+          if (filteredVoisoAgents.length < 100) {
+            if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].contains(voisoSearch.text.toLowerCase().trim())){
+              filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
+            }
+            if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(voisoSearch.text.toLowerCase().trim()):false){
+              if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
+                filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
+              }
+            }
+            if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(voisoSearch.text.toLowerCase().trim()):false){
+              if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
+                filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
+              }
+            }
+            if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].toLowerCase().trim().contains(voisoSearch.text.toLowerCase().trim())){
+              if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
+                filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
+              }
+            }
+          }
+        }else{
+          if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].contains(voisoSearch.text.toLowerCase().trim())){
+            filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
+          }
+          if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(voisoSearch.text.toLowerCase().trim()):false){
+            if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
+              filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
+            }
+          }
+          if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(voisoSearch.text.toLowerCase().trim()):false){
+            if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
+              filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
+            }
+          }
+          if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].toLowerCase().trim().contains(voisoSearch.text.toLowerCase().trim())) {
+            if (!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])) {
+              filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
+            }
+          }
+        }
+      }
+    }
+    notifyListeners();
+    return filteredVoisoAgents;
+  }
+
+  getVoisoBalances(){
+    Timer.periodic(Duration(seconds: 1), (timer) async {
+      double sumBalances = 0;
+      for(int i=0; i < voisoClusters.length;i++){
+        String endpoint = "${voisoClusters.keys.toList()[i]}.voiso.com";
+        String method = "api/v1/${voisoClusters[voisoClusters.keys.toList()[i]]["center"]}/balance";
+        try {
+          final response = await http.get(
+            Uri.https(
+                endpoint, method
+            ),
+          );
+          if(jsonDecode(response.body).containsKey("error")){
+            voisoBalances[voisoClusters.keys.toList()[i]] = 0;
+          }else{
+            voisoBalances[voisoClusters.keys.toList()[i]] = jsonDecode(response.body)["balance"];
+            sumBalances = sumBalances + jsonDecode(response.body)["balance"];
+          }
+        } catch (_) {
+          voisoBalances[voisoClusters.keys.toList()[i]] = 0;
+        }
+      }
+      balance = sumBalances;
       notifyListeners();
     });
   }
-  Future<bool> saveVoisoKeys() async{
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString("voiso", encrypt(
-        jsonEncode(
-            {
-              "cluster":voisoCluster.text,
-              "user":voisoKeyUser.text,
-              "center":voisoKeyCenter.text
-            }
-        )
-    ).base64);
+
+  Future<bool> checkVoisoCluster(endpoint) async {
+    try {
+      final response = await http.head(Uri.https("$endpoint.voiso.com"));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> checkVoisoCCKey(cluster, center) async {
+    var endpoint = "$cluster.voiso.com";
+    var method = "api/v1/$center/balance";
+    final response = await http.get(
+      Uri.https(
+          endpoint, method
+      ),
+    );
+    if(jsonDecode(response.body).containsKey("error")){
+      return false;
+    }else{
+      return true;
+    }
+  }
+
+  Future<bool> checkVoisoUKey(cluster, agent) async {
+    var params = {
+      "key": agent
+    };
+    var endpoint = "$cluster.voiso.com";
+    var method = "api/v2/cdr/wrapup_codes";
+    final response = await http.get(
+      Uri.https(
+          endpoint, method, params
+      ),
+    );
+    try{
+      if(jsonDecode(response.body)[0]["description"] == "0000: Click here"){
+        return true;
+      }else{
+        return false;
+      }
+    }catch(_){
+      return false;
+    }
+  }
+
+  Future<bool> saveVoisoKeys(cluster, agent, center) async{
+    clusterValid = await checkVoisoCluster(cluster);
+    userValid = await checkVoisoUKey(cluster, agent);
+    centerValid = await checkVoisoCCKey(cluster, center);
+    if(clusterValid&&userValid&&centerValid){
+      voisoClusters[cluster] = {
+        "cluster":cluster,
+        "user":agent,
+        "center":center
+      };
+    }
+    setData(serverAddr, "voiso", encrypt(jsonEncode(voisoClusters)).base64);
     return true;
   }
 }

@@ -43,16 +43,11 @@ String decrypt(Encrypted encryptedData) {
   return encrypter.decrypt(encryptedData, iv: initVector);
 }
 
-Future<String> getData(val) async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool isProxyUsed = false;
-  if(prefs.containsKey("isProxyUsed")){
-    isProxyUsed = prefs.getBool("isProxyUsed")??false;
-  }
+Future<String> getData(ip, val) async {
   var params = {
   'type': val
   };
-  var endpoint = isProxyUsed?"95.67.123.210:6060":"172.17.6.248:6060";
+  var endpoint = "$ip:6060";
   var method = "api/getData.php";
   final response = await http.get(
     Uri.http(
@@ -62,13 +57,8 @@ Future<String> getData(val) async {
   return response.body;
 }
 
-Future<String> setData(data, body) async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool isProxyUsed = false;
-  if(prefs.containsKey("isProxyUsed")){
-    isProxyUsed = prefs.getBool("isProxyUsed")??false;
-  }
-  var endpoint = isProxyUsed?"95.67.123.210:6060":"172.17.6.248:6060";
+Future<String> setData(ip, data, body) async {
+  var endpoint = "$ip:6060";
   const method = "api/setData.php";
   final response = await http.post(
     Uri.http(
@@ -196,6 +186,22 @@ Future fastpanelDomains(ip, site, key) async {
   return jsonDecode(response.body);
 }
 
+Future fastpanelActions(ip, key) async {
+  var params = {
+    "filter[limit]": "1"
+  };
+  var headers = {
+    'Authorization': "Bearer $key",
+  };
+  var endpoint = "$ip:8888";
+  var method = "api/queue/list";
+  final response = await http.get(
+      Uri.https(endpoint, method, params),
+      headers: headers
+  );
+  return jsonDecode(response.body);
+}
+
 Future<bool> checkConnect(ip) async {
   var endpoint = "$ip:8888";
   try {
@@ -205,20 +211,25 @@ Future<bool> checkConnect(ip) async {
     return false;
   }
 }
-Future<bool> pingServer() async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  bool isProxyUsed = false;
-  if(prefs.containsKey("isProxyUsed")){
-    isProxyUsed = prefs.getBool("isProxyUsed")??false;
-  }
-  var endpoint = isProxyUsed?"95.67.123.210:6060":"172.17.6.248:6060";
+Future<String> pingServer() async {
   try {
-    final response = await http.get(Uri.http(endpoint));
-    return response.statusCode == 200;
+    final response = await http.get(Uri.http("172.17.6.248:6060"));
+    if(response.statusCode == 200){
+      return "172.17.6.248";
+    }
   } catch (_) {
-    return false;
+    try {
+      final response = await http.get(Uri.http("95.67.123.210:6060"));
+      if(response.statusCode == 200){
+        return "95.67.123.210";
+      }
+    } catch (_) {
+      return "";
+    }
   }
+  return "";
 }
+
 Future<bool> pingProxy(address, creds) async {
   try {
     final response = await http.head(
