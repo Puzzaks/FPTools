@@ -101,6 +101,7 @@ class ServersPageState extends State<ServersPage> {
                             engine.filterServers();
                           }
                         },
+                        autofocus: true,
                         decoration: InputDecoration(
                           suffixIcon: Padding(
                             padding: const EdgeInsets.only(right: 5),

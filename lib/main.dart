@@ -16,13 +16,13 @@ import 'package:provider/provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
-  WindowManager.instance.setMinimumSize(const Size(720, 480));
+  WindowManager.instance.setMinimumSize(const Size(750, 600));
   // WindowManager.instance.setMaximumSize(const Size(775, 525));
 
 
   runApp(ChangeNotifierProvider(
     create: (context) => fastEngine(),
-    child: MyApp(),
+    child: const MyApp(),
   ));
 }
 
@@ -32,7 +32,6 @@ class MyApp extends StatefulWidget {
   MyAppState createState() => MyAppState();
 }
 class MyAppState extends State<MyApp> {
-  int screenIndex = 0;
   @override
   void initState() {
     WidgetsFlutterBinding.ensureInitialized();
@@ -100,32 +99,36 @@ class MyAppState extends State<MyApp> {
                           label: const Text("Voiso Users", style: TextStyle(fontSize: 18)),
                           icon: const Icon(Icons.dialer_sip_rounded),
                         ),
-                        NavigationRailDestination(
+                        const NavigationRailDestination(
                           // disabled: engine.voisoLoading,
-                          label: const Text("Voiso Clusters", style: TextStyle(fontSize: 18)),
-                          icon: const Icon(Icons.sip_rounded),
+                          label: Text("Voiso Clusters", style: TextStyle(fontSize: 18)),
+                          icon: Icon(Icons.sip_rounded),
+                        ),
+                        const NavigationRailDestination(
+                          // disabled: engine.voisoLoading,
+                          label: Text("Numbercheck", style: TextStyle(fontSize: 18)),
+                          icon: Icon(Icons.dialpad_rounded),
                         ),
                         NavigationRailDestination(
-                          // disabled: engine.voisoLoading,
-                          label: const Text("Numbercheck", style: TextStyle(fontSize: 18)),
-                          icon: const Icon(Icons.dialpad_rounded),
+                          disabled: engine.voisoLoading,
+                          label: const Text("CDR", style: TextStyle(fontSize: 18)),
+                          icon: const Icon(Icons.list_alt_rounded),
                         ),
                         NavigationRailDestination(
                           disabled: engine.domainsLoading,
                           label: const Text("Logs", style: TextStyle(fontSize: 18)),
                           icon: const Icon(Icons.history_rounded),
                         ),
-                        NavigationRailDestination(
-                          padding: EdgeInsets.only(top: scaffoldHeight - 404),
-                          label: const Text("Settings", style: TextStyle(fontSize: 18)),
-                          icon: const Icon(Icons.settings_rounded),
+                        const NavigationRailDestination(
+                          label: Text("Settings", style: TextStyle(fontSize: 18)),
+                          icon: Icon(Icons.settings_rounded),
                         ),
                       ],
-                      selectedIndex: screenIndex,
+                      selectedIndex: engine.screenIndex,
                       useIndicator: true,
                       onDestinationSelected: (int index) {
                         setState(() {
-                          screenIndex = index;
+                          engine.screenIndex = index;
                         });
                       },
                     ),
@@ -143,7 +146,7 @@ class MyAppState extends State<MyApp> {
                                 child: InkWell(
                                   onTap: () {
                                     setState(() {
-                                      screenIndex = page;
+                                      engine.screenIndex = page;
                                     });
                                   },
                                   child: Padding(
@@ -197,7 +200,7 @@ class MyAppState extends State<MyApp> {
                               }
                             }
                           }
-                          switch (screenIndex) {
+                          switch (engine.screenIndex) {
                             case 0:
                               DateTime time = DateTime.fromMillisecondsSinceEpoch(engine.lastUpdateTime);
                               return Container(
@@ -211,11 +214,11 @@ class MyAppState extends State<MyApp> {
                                             "emails",
                                             engine.users.length,
                                             1,
-                                            engine.domainsLoading?Icon(Icons.cloud_sync_rounded,color: Colors.grey,):IconButton(
+                                            engine.domainsLoading?const Icon(Icons.cloud_sync_rounded,color: Colors.grey,):IconButton(
                                                 onPressed: () {
                                                   engine.toOpenUCM = true;
                                                   setState(() {
-                                                    screenIndex = 1;
+                                                    engine.screenIndex = 1;
                                                   });
                                                 },
                                                 icon: const Icon(Icons.add_rounded)
@@ -225,11 +228,11 @@ class MyAppState extends State<MyApp> {
                                             "servers",
                                             engine.domains.length,
                                             2,
-                                            engine.domainsLoading?Icon(Icons.cloud_sync_rounded,color: Colors.grey,):IconButton(
+                                            engine.domainsLoading?const Icon(Icons.cloud_sync_rounded,color: Colors.grey,):IconButton(
                                                 onPressed: () {
                                                   engine.toOpenDCM = true;
                                                   setState(() {
-                                                    screenIndex = 2;
+                                                    engine.screenIndex = 2;
                                                   });
                                                 },
                                                 icon: const Icon(Icons.add_rounded)
@@ -239,11 +242,11 @@ class MyAppState extends State<MyApp> {
                                             "labels",
                                             engine.labels.length,
                                             3,
-                                            engine.domainsLoading?Icon(Icons.cloud_sync_rounded,color: Colors.grey,):IconButton(
+                                            engine.domainsLoading?const Icon(Icons.cloud_sync_rounded,color: Colors.grey,):IconButton(
                                                 onPressed: () {
                                                   engine.toOpenLCM = true;
                                                   setState(() {
-                                                    screenIndex = 3;
+                                                    engine.screenIndex = 3;
                                                   });
                                                 },
                                                 icon: const Icon(Icons.add_rounded)
@@ -260,48 +263,7 @@ class MyAppState extends State<MyApp> {
                                             child: InkWell(
                                               onTap: () {
                                                 setState(() {
-                                                  screenIndex = 6;
-                                                });
-                                              },
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(15),
-                                                child: Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            const Text(
-                                                              "Proxy",
-                                                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
-                                                            ),
-                                                            Text(
-                                                              engine.proxyStatus,
-                                                            )
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    const Padding(
-                                                      padding: EdgeInsets.only(left: 9),
-                                                      child: Icon(Icons.keyboard_arrow_right),
-                                                    )
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Card(
-                                            clipBehavior: Clip.hardEdge,
-                                            elevation: 2,
-                                            child: InkWell(
-                                              onTap: () {
-                                                setState(() {
-                                                  screenIndex = 4;
+                                                  engine.screenIndex = 4;
                                                 });
                                               },
                                               child: Padding(
@@ -320,7 +282,7 @@ class MyAppState extends State<MyApp> {
                                                             ),
                                                             Text(
                                                               engine.balance == 0? "Not configured"
-                                                              :engine.voisoUserCount == 0? "Loading agents..."
+                                                                  :engine.voisoUserCount == 0? "Loading agents..."
                                                                   :"${engine.voisoUserCount.toString()} agents",
                                                             )
                                                           ],
@@ -344,7 +306,7 @@ class MyAppState extends State<MyApp> {
                                             child: InkWell(
                                               onTap: () {
                                                 setState(() {
-                                                  screenIndex = 4;
+                                                  engine.screenIndex = 5;
                                                 });
                                               },
                                               child: Padding(
@@ -359,7 +321,7 @@ class MyAppState extends State<MyApp> {
                                                           children: [
                                                             Text(
                                                               "${engine.voisoClusters.length} voiso cluster${engine.voisoClusters.length%10==1?"":"s"}",
-                                                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
                                                             ),
                                                             Text(
                                                               engine.balance == 0? "Not configured"
@@ -370,6 +332,93 @@ class MyAppState extends State<MyApp> {
                                                       ],
                                                     ),
                                                     const Padding(
+                                                      padding: EdgeInsets.only(left: 9),
+                                                      child: Icon(Icons.keyboard_arrow_right),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Card(
+                                            clipBehavior: Clip.hardEdge,
+                                            elevation: 2,
+                                            child: InkWell(
+                                              onTap: () {
+                                                setState(() {
+                                                  engine.screenIndex = 6;
+                                                });
+                                              },
+                                              child: const Padding(
+                                                padding: EdgeInsets.all(15),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(
+                                                              "HLR",
+                                                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                            ),
+                                                            Text(
+                                                              "Validate numbers",
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    Padding(
+                                                      padding: EdgeInsets.only(left: 9),
+                                                      child: Icon(Icons.keyboard_arrow_right),
+                                                    )
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Card(
+                                            clipBehavior: Clip.hardEdge,
+                                            elevation: 2,
+                                            child: InkWell(
+                                              onTap: () {
+                                                setState(() {
+                                                  engine.screenIndex = 7;
+                                                });
+                                              },
+                                              child: const Padding(
+                                                padding: EdgeInsets.all(15),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(
+                                                              "CDR",
+                                                              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                            ),
+                                                            Text(
+                                                              "Check call history",
+                                                            )
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    Padding(
                                                       padding: EdgeInsets.only(left: 9),
                                                       child: Icon(Icons.keyboard_arrow_right),
                                                     )
@@ -426,10 +475,10 @@ class MyAppState extends State<MyApp> {
                                                     children: [
                                                       Text(
                                                         (DateTime.now().millisecondsSinceEpoch - engine.lastUpdateTime)/10000 > 1?engine.updateStatus:"Updated!",
-                                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                                       ),
                                                       Text(
-                                                        (DateTime.now().millisecondsSinceEpoch - engine.lastUpdateTime)/10000 > 1?"Started updating ${time.add(Duration(seconds: 10)).timeAgo(numericDates: false)}":"Updated ${time.timeAgo(numericDates: false)}",
+                                                        (DateTime.now().millisecondsSinceEpoch - engine.lastUpdateTime)/10000 > 1?"Started updating ${time.add(const Duration(seconds: 10)).timeAgo(numericDates: false)}":"Updated ${time.timeAgo(numericDates: false)}",
                                                       )
                                                     ],
                                                   ),
@@ -456,7 +505,7 @@ class MyAppState extends State<MyApp> {
                                                   children: [
                                                     Text(
                                                       "Recently ${engine.recentRemoteCreate["action"].toLowerCase().replaceAll("ing","ed")}",
-                                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                                     ),
                                                     Container(
                                                       constraints: BoxConstraints(
@@ -487,7 +536,7 @@ class MyAppState extends State<MyApp> {
                                               engine.serverSearch.text = engine.known[unavailables[0]]["name"];
                                               engine.filterServers();
                                             }
-                                            screenIndex = 2;
+                                            engine.screenIndex = 2;
                                           });
                                         },
                                         child: Padding(
@@ -528,7 +577,8 @@ class MyAppState extends State<MyApp> {
                             case 4: return const AgentsPage(); // Voiso Agents
                             case 5: return const VoisoClusters(); // Voiso Clusters
                             case 6: return const NumberCheckPage(); // Numbercheck
-                            case 7: return const LogsPage(); // Logs
+                            case 7: return const CDRPage(); // CDR
+                            case 8: return const LogsPage(); // Logs
                             default: return const SettingsPage(); // App Settings
                           }
                         },

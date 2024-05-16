@@ -216,6 +216,15 @@ Future<String> pingServer() async {
     final response = await http.get(Uri.http("172.17.6.248:6060"));
     if(response.statusCode == 200){
       return "172.17.6.248";
+    }else{
+      try {
+        final response = await http.get(Uri.http("95.67.123.210:6060"));
+        if(response.statusCode == 200){
+          return "95.67.123.210";
+        }
+      } catch (_) {
+        return "";
+      }
     }
   } catch (_) {
     try {

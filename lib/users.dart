@@ -218,6 +218,7 @@ class UsersPageState extends State<UsersPage> {
                       onChanged: (value) {
                         engine.filterUsers();
                       },
+                      autofocus: true,
                       decoration: InputDecoration(
                         suffixIcon: Padding(
                           padding: const EdgeInsets.only(right: 5),
@@ -371,19 +372,29 @@ class UsersPageState extends State<UsersPage> {
                                                           : const Icon(Icons.done_all_rounded)
                                                     ),
                                                     Text(
-                                                      "${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)? "Selected":engine.filtered[login][0]["login"]}${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)?"":" • ${engine.filtered[login].length} domains"}${engine.selectedUsers.isNotEmpty?" • ${engine.selectedUsers.length} ${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)?"total":"selected"}":""}",
+                                                      "${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)? "Selected":engine.filtered[login][0]["login"]}${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)?"":" • ${engine.filtered[login].length} domains"}${engine.selectedUsers.isNotEmpty?" • ${engine.selectedUsers.length} ${(engine.selectedUsers.isNotEmpty&&engine.userSearch.text.isEmpty)?"total":"selected"}":""}${engine.hasVoiso(engine.filtered[login][0]["login"])?" • Has Voiso":""}",
                                                       style: const TextStyle(fontSize: 16),
                                                     ),
                                                   ],
                                                 ),
                                                 Row(
                                                   children: [
+                                                    engine.hasVoiso(engine.filtered[login][0]["login"])?IconButton(
+                                                        onPressed: () async {
+                                                          engine.voisoSearch.text = engine.filtered[login][0]["login"];
+                                                          engine.filterVoisoUsers();
+                                                          setState(() {
+                                                            engine.screenIndex = 4;
+                                                          });
+                                                        },
+                                                        icon: const Icon(Icons.dialer_sip_rounded)
+                                                    ):Container(),
                                                     IconButton(
-                                                      onPressed: () async {
-                                                        await Clipboard.setData(ClipboardData(text: engine.filtered[login][0]["login"]));
-                                                      },
-                                                      icon: const Icon(Icons.copy_rounded)
-                                                  ),
+                                                        onPressed: () async {
+                                                          await Clipboard.setData(ClipboardData(text: engine.filtered[login][0]["login"]));
+                                                        },
+                                                        icon: const Icon(Icons.copy_rounded)
+                                                    ),
                                                     IconButton(
                                                         onPressed: () {
                                                           showDialog<String>(
@@ -443,7 +454,8 @@ class UsersPageState extends State<UsersPage> {
                                                         },
                                                         icon: const Icon(Icons.edit_rounded)
                                                     ),
-                                                    IconButton(onPressed: () {
+                                                    IconButton(
+                                                        onPressed: () {
                                                       showDialog<String>(
                                                         context: context,
                                                         builder: (BuildContext context) => AlertDialog(
@@ -727,7 +739,7 @@ class UsersPageState extends State<UsersPage> {
                                                 style: const TextStyle(fontSize: 16),
                                               ),
                                               Text(
-                                                "${engine.filtered[login][0]["size"]==0?"Empty":formatSize(engine.filtered[login][0]["size"])} • Created ${timePassed(engine.filtered[login][0]["created_at"])}",
+                                                "${engine.filtered[login][0]["size"]==0?"Empty":formatSize(engine.filtered[login][0]["size"])} • Created ${timePassed(engine.filtered[login][0]["created_at"])}${engine.hasVoiso(engine.filtered[login][0]["login"])?" • Has Voiso":""}",
                                                 style: const TextStyle(fontSize: 14,color: Colors.grey),
                                               ),
                                             ],
@@ -761,6 +773,16 @@ class UsersPageState extends State<UsersPage> {
                                           ? Row(
                                         mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
+                                          engine.hasVoiso(engine.filtered[login][0]["login"])?IconButton(
+                                              onPressed: () async {
+                                                engine.voisoSearch.text = engine.filtered[login][0]["login"];
+                                                engine.filterVoisoUsers();
+                                                setState(() {
+                                                  engine.screenIndex = 4;
+                                                });
+                                              },
+                                              icon: const Icon(Icons.dialer_sip_rounded)
+                                          ):Container(),
                                           IconButton(
                                               onPressed: () async {
                                                 await Clipboard.setData(ClipboardData(text: engine.filtered[login][0]["address"]));
@@ -1481,7 +1503,7 @@ class NewUserPageState extends State<NewUserPage> {
                                 }
                                     : null,
                                 child: Text(
-                                    (engine.userDomains.length > 1 ||engine.multiUserCreate)? "Create users" : "Create user"
+                                    (engine.multiUserCreate)? "Create users" : "Create user"
                                 )
                             ),
                           ],

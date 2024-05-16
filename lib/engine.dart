@@ -126,7 +126,12 @@ class Translit {
 }
 
 class fastEngine extends HttpOverrides with material.ChangeNotifier{
+  material.TextEditingController dropController = material.TextEditingController(text: "Voiso: cc-ams05");
+  material.TextEditingController userDropController = material.TextEditingController();
   material.TextEditingController userSearch = material.TextEditingController(text: "");
+  material.TextEditingController cpSearch = material.TextEditingController(text: "");
+  material.TextEditingController cdrSearch = material.TextEditingController(text: "");
+  material.TextEditingController cdrFromSearch = material.TextEditingController(text: "");
   material.TextEditingController voisoSearch = material.TextEditingController(text: "");
   material.TextEditingController voisoUserName = material.TextEditingController(text: "");
   material.TextEditingController voisoUserEmail = material.TextEditingController(text: "");
@@ -150,6 +155,9 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   material.TextEditingController voisoKeyUser = material.TextEditingController();
   material.TextEditingController voisoKeyCenter = material.TextEditingController();
   material.TextEditingController voisoCluster = material.TextEditingController();
+  material.TextEditingController cpKey = material.TextEditingController();
+  material.TextEditingController cpCluster = material.TextEditingController();
+  material.TextEditingController numinput = material.TextEditingController();
   Map known = {};
   Map displayKnown = {};
   Map logins = {};
@@ -220,14 +228,38 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   Map voisoTeams = {};
   Set activeVoisoClusters = {};
   List filteredVoisoAgents = [];
+  String numCheckStatus = "";
+  double  numCheckProgress = 0;
+  Map numCheckResult = {};
+  String numCheckVerdict = "";
+  int screenIndex = 0;
+  Map voisoCDR = {};
+  Map cpCDR = {};
+  bool answCDR = false;
+  bool answCPCDR = false;
+  DateTime dateCDR = DateTime(2021,9,11);
+  DateTime dateCPCDR = DateTime(2021,9,11);
+  double progressCDR = 0;
+  int cdrSelector = 0;
+  Map availCPs = {
+    "bnbs": "r2ghSS7B4GlKRyG6VT10iGl8pNYVMgAcwMImA8FS24tyQmLXx9iOn5ZPCXDa2tQk",
+    "bnbs07": "BFgD1jlqHek2KuM6Ahck8T6kk8IkaOjW1MR7TbgsXrZPPnZTNUAciEf4Xj6RMp1r"
+  };
+  String selectCP = "bnbs";
+  Map clusters = {};
+  Map allClusters = {};
+  bool isNumCheck = false;
+  List voisoNumbers = [];
+  Map numbersFromAmountCalls = {};
 
-  String decrypt(Encrypted encryptedData) {
+
+  String            decrypt(Encrypted encryptedData) {
     final key = Key.fromUtf8(globalPassword);
     final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
     final initVector = IV.fromUtf8(globalPassword.substring(0, 16));
     return encrypter.decrypt(encryptedData, iv: initVector);
   }
-  Encrypted encrypt(String plainText) {
+  Encrypted         encrypt(String plainText) {
     final key = Key.fromUtf8(globalPassword);
     final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
     String pwd = globalPassword.substring(0, 16);
@@ -235,22 +267,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     Encrypted encryptedData = encrypter.encrypt(plainText, iv: initVector);
     return encryptedData;
   }
-  Future<bool> checkPassword(String password) async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    if(prefs.containsKey("globalPassword")){
-      var refPWD = prefs.getString("globalPassword");
-      var checkPWD = md5.convert(utf8.encode(md5.convert(utf8.encode("113245-FPT")).toString())).toString();
-      if(checkPWD == refPWD){
-        globalPassword = checkPWD;
-        loggedIn = true;
-        notifyListeners();
-        return true;
-      }
-    }
-    return false;
-  }
-
-  Future<void> logAdd (log, type, thread, bool isArray) async {
+  Future<void>      logAdd (log, type, thread, bool isArray) async {
     logs.add({
       "time": DateTime.now().millisecondsSinceEpoch,
       "log": log,
@@ -264,10 +281,10 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     notifyListeners();
   }
-  String normUsername(username){
-    return Translit().toTranslit(source: latinize(username.replaceAll("\r", "").replaceAll("\n", "").replaceAll("	", "").trim())).replaceAll(" ", ".").replaceAll("..", ".").toLowerCase();
+  String            normUsername(username){
+    return Translit().toTranslit(source: latinize(username.split("@")[0].replaceAll("\r", "").replaceAll("\n", "").replaceAll("	", "").trim())).replaceAll(" ", ".").replaceAll("..", ".").toLowerCase();
   }
-  Future<Map> getAppData() async {
+  Future<Map>       getAppData() async {
     final info = await PackageInfo.fromPlatform();
     Map output = {};
     output = {
@@ -276,7 +293,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     };
     return output;
   }
-  launch() async {
+                    launch() async {
     loadPercent = 0;
     await WindowManager.instance.ensureInitialized();
     windowManager.waitUntilReadyToShow().then((_) async {
@@ -366,6 +383,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         }
 
 
+        await logAdd("Checking servers...", "info", "startup", false);
         if(prefs.containsKey("logins")){
           String memLogs = "";
           memLogs = await prefs.getString("logins")??"";
@@ -379,12 +397,13 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         loadPercent = 0.33;
         for(int i=0; i<known.length;i++){
           var keyVar = known[known.keys.toList()[i]]["addr"];
-          await logAdd("Checking connection to $keyVar...", "info", "startup", false);
           notifyListeners();
           await checkConnect(keyVar).then((value) async {
             availables[keyVar] = value;
             if(value){
               checkLogin(keyVar);
+            }else{
+              await logAdd("$keyVar is unavailable!", "error", "network", false);
             }
             loadPercent = ((i+1)/known.length)/3 + 0.33;
           });
@@ -413,7 +432,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       }
     });
   }
-  checkFetchData() async{
+                    checkFetchData() async{
     if(userCreateMode){
       // await logAdd("Skipping data refresh...", "info", "getting", false);
     }else{
@@ -435,7 +454,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     await windowManager.setTitle("");
     fetchTimer.reset();
   }
-  Future<List> getAllUpdates() async {
+  Future<List>      getAllUpdates() async {
     fetchTimer.cancel();
     bool needsUpdate = false;
     updateStatus = "Getting updates...";
@@ -476,7 +495,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     fetchTimer.reset();
     return [];
   }
-  Future deleteUser(user) async {
+  Future            deleteUser(user) async {
     newbieDomains.clear();
     loading = true;
     await logAdd("Deleting ${user["address"]}...", "info", "deletion", false);
@@ -502,7 +521,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       });
     });
   }
-  Future updateUser(user) async {
+  Future            updateUser(user) async {
     loading = true;
     var pass = updatePassword.text == ""?generateRandomString(12):updatePassword.text;
     await logAdd("Updating ${user["address"]}...", "info", "updating", false);
@@ -524,12 +543,12 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       });
     });
   }
-  String generateRandomString(int len) {
+  String            generateRandomString(int len) {
     var r = Random();
     const _chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
     return List.generate(len, (index) => _chars[r.nextInt(_chars.length)]).join();
   }
-  Future createUser() async {
+  Future            createUser() async {
     loading = true;
     await logAdd("Creating ${normUsername(userL.text)}...", "info", "creation", false);
       String pass = userP.text == ""?generateRandomString(12):userP.text;
@@ -620,11 +639,11 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       });
     return "WTF";
   }
-  Future saveToggle(String key, bool value) async {
+  Future            saveToggle(String key, bool value) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     prefs.setBool(key, value);
   }
-  Future getDomains(ip) async{
+  Future            getDomains(ip) async{
     await checkLogin(ip);
     var out = [];
     await fastpanelSites(ip, logins[ip]["token"]).then((site) {
@@ -648,7 +667,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     });
     return out;
   }
-  Future <String?> checkLogin(ip) async {
+  Future <String?>  checkLogin(ip) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if(logins.containsKey(ip)) {
       if(DateTime.parse(logins[ip]["data"]["expire"]).difference(DateTime.now()).inMinutes < 1){
@@ -676,7 +695,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       });
     }
   }
-  Future <void> checkAndCacheBrand() async{
+  Future <void>     checkAndCacheBrand() async{
     tempPanelAddloading = true;
     tempPanelAddReady = false;
     notifyListeners();
@@ -697,7 +716,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       }
     });
   }
-  Future<bool> saveBrand() async{
+  Future<bool>      saveBrand() async{
     Map tempKnown = {};
     tempKnown[tempA.text] = {
       "name": tempL.text,
@@ -714,7 +733,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     });
     return false;
   }
-  Future<bool> saveLabels() async{
+  Future<bool>      saveLabels() async{
     await setData(serverAddr, "labels", encrypt(jsonEncode(labels)).base64).then((value){
       filterServers();
       return true;
@@ -722,15 +741,14 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     notifyListeners();
     return true;
   }
-  Future<bool> saveBrandList() async{
+  Future<bool>      saveBrandList() async{
     await setData(serverAddr, "known", encrypt(jsonEncode(known)).base64).then((value){
       filterServers();
       return true;
     });
     return false;
   }
-
-  List getUserLabels(domain) {
+  List              getUserLabels(domain) {
     List candidates = [];
     for(int i=0;i<labels.length;i++){
       for(int g=0;g<labels[i]["domains"].length;g++){
@@ -741,7 +759,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     return candidates;
   }
-  bool userExists(email){
+  bool              userExists(email){
     if(allUsers.contains(email.split("@")[0])) {
       existDomains.clear();
       for (int i = 0; i < userDomains.length; i++) {
@@ -755,8 +773,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     return false;
   }
-
-  Future<bool> saveProxy() async{
+  Future<bool>      saveProxy() async{
     proxyStatus = "Checking proxy...";
     notifyListeners();
     final SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -779,7 +796,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     });
     return true;
   }
-  Future <Map> filterUsers() async {
+  Future <Map>      filterUsers() async {
     loading = true;
     await logAdd("Validating users...", "info", "filtering", false);
     filtered.clear();
@@ -847,7 +864,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     notifyListeners();
     return filtered;
   }
-  Future <Map> filterServers() async {
+  Future <Map>      filterServers() async {
     displayKnown.clear();
     for (int i = 0; i < known.length; i++) {
       if(known[known.keys.toList()[i]]["name"].toString().toLowerCase().contains(serverSearch.text.toLowerCase())){
@@ -857,7 +874,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     notifyListeners();
     return displayKnown;
   }
-  Future updateCachedUsers() async{
+  Future            updateCachedUsers() async{
     loading = true;
     await logAdd("Updating users...", "info", "filtering", false);
     users.clear();
@@ -869,7 +886,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     loading = false;
     await logAdd("Updated users!", "info", "filtering", false);
   }
-  Future<List> getAllUsers() async {
+  Future<List>      getAllUsers() async {
     // users.clear();
     loading = true;
     await logAdd("Loading users...", "info", "users", false);
@@ -884,7 +901,6 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
           if(toUpdate.isEmpty){
             if(logins.containsKey(keyVar)){
               await checkLogin(keyVar).then((huh) async {
-                await logAdd("Getting users from ${domains[keyVar][a]["name"]}...", "info", "getting", false);
                 await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value) async {
                   updateTimes[domains[keyVar][a]["name"]] = DateTime.now().toUtc().millisecondsSinceEpoch;
                   domainUsers[domains[keyVar][a]["name"]] = value["data"];
@@ -896,7 +912,6 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
               if(logins.containsKey(keyVar)){
                 toUpdate.remove(domains[keyVar][a]["name"]);
                 await checkLogin(keyVar).then((huh) async {
-                  await logAdd("Getting users from ${domains[keyVar][a]["name"]}...", "info", "getting", false);
                   await fastpanelMailboxes(keyVar, domains[keyVar][a], logins[keyVar]["token"]).then((value) async {
                     updateTimes[domains[keyVar][a]["name"]] = DateTime.now().toUtc().millisecondsSinceEpoch;
                     domainUsers[domains[keyVar][a]["name"]] = value["data"];
@@ -917,17 +932,35 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     notifyListeners();
     return users;
   }
-  Future<bool> saveDomains() async{
+  Future<bool>      saveDomains() async{
     notifyListeners();
     setData(serverAddr, "domains", encrypt(jsonEncode(domains)).base64);
     return true;
   }
-
-  ignite() async {
+                    ignite() async {
     voisoLoading = true;
     voisoStatus = "Loading settings...";
     getVoisoBalances();
     activeVoisoClusters = {...voisoClusters.keys};
+    getAllVoisoNumbers();
+    List tempClusters = [];
+    tempClusters.addAll(voisoClusters.keys);
+    tempClusters.addAll(availCPs.keys);
+    clusters = {
+      "Voiso": voisoClusters.keys,
+      "CP": availCPs.keys
+    };
+    for(int i=0;i<tempClusters.length;i++){
+      if(clusters["CP"].contains(tempClusters[i])){
+        cpCDR[tempClusters[i]] = {};
+        allClusters[tempClusters[i]] = "CP";
+      }else if(clusters["Voiso"].contains(tempClusters[i])){
+        voisoCDR[tempClusters[i]] = {};
+        allClusters[tempClusters[i]] = "Voiso";
+      }else{
+        allClusters[tempClusters[i]] = "UNKNOWN";
+      }
+    }
     getVoisoUsers().then((value){
       getVoisoTeams().then((value){
         filterVoisoUsers();
@@ -935,8 +968,9 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     });
     voisoLoading = false;
     voisoStatus = "Loaded";
+    print(allClusters);
   }
-  Future<Map> getVoisoUsers() async {
+  Future<Map>       getVoisoUsers() async {
     for(int i=0; i < voisoClusters.length;i++){
       String endpoint = "${voisoClusters.keys.toList()[i]}.voiso.com";
       var params = {
@@ -952,8 +986,60 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     return voisoUsers;
   }
-
-  String getTeamName(id){
+  Future<Map>       getVoisoNumbers(page) async {
+    String endpoint = "${activeVoisoClusters.elementAt(0)}.voiso.com";
+    var params = {
+      "page": page.toString()
+    };
+    var headers = {
+      "Authorization": "Bearer ${voisoClusters[activeVoisoClusters.elementAt(0)]["center"]}"//hardcoded key is bad
+    };
+    String method = "api/numbers/v1/numbers";
+    final response = await http.get(
+      Uri.https(
+          endpoint, method, params
+      ),
+      headers: headers
+    );
+    return jsonDecode(response.body);
+  }
+  Future<Map>       getAllVoisoNumbers() async {
+    int numbersTotal = 0;
+    int perPage =0;
+    await getVoisoNumbers(1).then((value) async {
+      numbersTotal = value["metadata"]["total"];
+      perPage = value["metadata"]["page_size"];
+      voisoNumbers.addAll(value["numbers"]);
+      for(int i=2; i <= (numbersTotal ~/ perPage)+1;i++){
+        await getVoisoNumbers(i).then((value){
+          voisoNumbers.addAll(value["numbers"]);
+        });
+      }
+    });
+    return voisoUsers;
+  }
+  Map               getVoisoNumberInfo(number){
+    for(int i=0;i<voisoNumbers.length;i++){
+      if(voisoNumbers[i]["number"]==number){
+        return voisoNumbers[i];
+      }
+    }
+    return {};
+  }
+  String            getTeamByUserId(userid){
+    var cluster = activeVoisoClusters.toList()[0];
+    for(int s=0; s<voisoUsers[cluster].length;s++){
+      if (voisoUsers[cluster][s]["id"].toString() == userid.toString()) {
+        if(voisoUsers[cluster][s]["agent_in_teams"] == ""){
+          print(voisoUsers[cluster][s]);
+        }else{
+          return voisoUsers[cluster][s]["agent_in_teams"].split(", ")[0];
+        }
+      }
+    }
+    return " - ";
+  }
+  String            getTeamName(id){
     for(int h=0; h < voisoClusters.length;h++) {
       for (int i = 0; i < voisoTeams[voisoClusters.keys.toList()[h]].length; i++) {
         if (voisoTeams[voisoClusters.keys.toList()[h]][i]["id"].toString() == id) {
@@ -961,11 +1047,9 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
         }
       }
     }
-    print(id);
-    return "[UNDEFINED]";
+    return " - ";
   }
-
-  Future<Map> getVoisoTeams() async {
+  Future<Map>       getVoisoTeams() async {
     for(int i=0; i < voisoClusters.length;i++){
       String endpoint = "${voisoClusters.keys.toList()[i]}.voiso.com";
       var params = {
@@ -981,49 +1065,182 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     return voisoTeams;
   }
-
-  Future<List> filterVoisoUsers() async {
+  Future<Map>       getVoisoCDR(Map<String, dynamic> params, cluster) async {
+    String endpoint = "$cluster.voiso.com";
+    print("Sending Voiso CDR with $params");
+    params["key"] = voisoClusters[cluster]["user"];
+    String method = "api/v2/cdr";
+    final response = await http.get(
+      Uri.https(
+          endpoint, method, params
+      ),
+    );
+    return jsonDecode(response.body);
+  }
+  Future<Map>       getCPCDR(Map<String, dynamic> params, cluster) async {
+    String endpoint = "${cluster}.stats.pbx.commpeak.com";
+    params["api_key"] = availCPs[cluster];
+    String method = "api/cdrs";
+    final response = await http.post(
+      Uri.https(
+          endpoint, method, params
+      ),
+    );
+    print(utf8.decoder.convert(response.bodyBytes));
+    if(jsonDecode(utf8.decoder.convert(response.bodyBytes)).isEmpty){
+      return {};
+    }
+    return jsonDecode(utf8.decoder.convert(response.bodyBytes));
+  }
+  Future<Map>       getStupidCDR() async {
+    String cluster = dropController.text.split(": ")[1];
+    switch(dropController.text.split(": ")[0]){
+      case "Voiso":
+        getVoisoStupidCDR(cdrSearch.text, cdrFromSearch.text, {
+          "start_date": dateCDR.toIso8601String().split("T")[0],
+          "disposition": answCDR ? "answered" : ""
+        }, cluster).then((value) {});
+        break;
+      case "CP":
+        getCPStupidCDR(cdrSearch.text, cdrFromSearch.text, {
+          "from": "${dateCDR.toIso8601String().split("T")[0]} 00:00:00",
+          "hangup_cause": answCDR ? "answered" : ""
+        }, cluster).then((value) {});
+        break;
+    }
+    return {};
+  }
+  Future<Map>       getVoisoStupidCDR(String load, String loadFrom, Map<String, dynamic> params, cluster) async {
+    voisoCDR[cluster] = {};
+    List numbers = RegExp(r'\d+').allMatches(load).map((m) => m.group(0)).toList();
+    List numbersCli = RegExp(r'\d+').allMatches(loadFrom).map((m) => m.group(0)).toList();
+    if(numbersCli.isEmpty){
+      numbersCli.add("0");
+    }
+    if(numbers.isEmpty){
+      numbers.add("0");
+    }
+    voisoCDR[cluster] = {};
+    print(numbersCli);
+    for(int h=0;h<numbersCli.length;h++) {
+      await getVoisoCDR({
+        "wildcard_cli": numbersCli[h].toString(),
+        "per_page":1.toString()
+      }, cluster).then((value){
+        numbersFromAmountCalls[numbersCli[h]] = value["total"];
+      });
+    }
+    for(int i=0;i<numbers.length;i++) {
+      for(int s=0;s<numbersCli.length;s++) {
+        int number = int.parse(numbers[i].trim().replaceAll(RegExp(r'[^0-9]'), ''));
+        int numberCli = int.parse(numbersCli[s].trim().replaceAll(RegExp(r'[^0-9]'), ''));
+        if(!(numberCli.toString=="0")){
+          params["wildcard_cli"] = numberCli.toString();
+        }
+        if(!(number.toString()=="0")){
+          print("Numeber = $number");
+          params["number"] = number.toString();
+        }
+        await getVoisoCDR(params, cluster).then((value){
+          if(numbers.isEmpty){
+            voisoCDR[cluster][numberCli.toString()] = [];
+            voisoCDR[cluster][numberCli.toString()].addAll(value["records"]);
+          }else{
+            voisoCDR[cluster][number.toString()] = [];
+            voisoCDR[cluster][number.toString()].addAll(value["records"]);
+          }
+          progressCDR = i/numbers.length;
+          notifyListeners();
+          print(voisoCDR);
+        });
+      }
+    }
+    progressCDR = 0;
+    notifyListeners();
+    return voisoCDR;
+  }
+  Future<Map>       getCPStupidCDR(String load, String loadFrom, Map<String, dynamic> params, String cluster) async {
+    cpCDR[cluster] = {};
+    List numbers = RegExp(r'\d+').allMatches(load).map((m) => m.group(0)).toList();
+    List numbersCli = RegExp(r'\d+').allMatches(loadFrom).map((m) => m.group(0)).toList();
+    if(numbersCli.isEmpty){
+      numbersCli.add("0");
+    }
+    if(numbers.isEmpty){
+      numbers.add("0");
+    }
+    cpCDR[cluster] = {};
+    for(int i=0;i<numbers.length;i++) {
+      for(int s=0;s<numbersCli.length;s++) {
+        int number = int.parse(numbers[i].trim().replaceAll(RegExp(r'[^0-9]'), ''));
+        int numberCli = int.parse(numbersCli[s].trim().replaceAll(RegExp(r'[^0-9]'), ''));
+        if(!(number.toString=="0")){
+          params["destination"] = number.toString();
+        }
+        if(!(numberCli.toString=="0")){
+          params["source"] = numberCli.toString();
+        }
+        params["sort_direction"] = "desc";
+        await getCPCDR(params, cluster).then((value){
+          if(value.isEmpty){
+            cpCDR[cluster][number.toString()] = [];
+          }else{
+            cpCDR[cluster][number.toString()] = [];
+            cpCDR[cluster][number.toString()].addAll(value["cdrs"]);
+          }
+          progressCDR = i/numbers.length;
+          notifyListeners();
+          print(cpCDR);
+        });
+      }
+    }
+    progressCDR = 0;
+    notifyListeners();
+    return cpCDR;
+  }
+  Future<List>      filterVoisoUsers() async {
     voisoUserCount = 0;
     filteredVoisoAgents.clear();
     for(int i=0; i < activeVoisoClusters.length;i++){
+      print(activeVoisoClusters.toList()[i]);
       for(int s=0; s<voisoUsers[activeVoisoClusters.elementAt(i)].length;s++){
         voisoUserCount++;
         if (displayUsers) {
           if (filteredVoisoAgents.length < 100) {
-            if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].contains(voisoSearch.text.toLowerCase().trim())){
+            if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].contains(normUsername(voisoSearch.text))){
               filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
             }
-            if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(voisoSearch.text.toLowerCase().trim()):false){
+            if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(normUsername(voisoSearch.text)):false){
               if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
                 filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
               }
             }
-            if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(voisoSearch.text.toLowerCase().trim()):false){
+            if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(normUsername(voisoSearch.text)):false){
               if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
                 filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
               }
             }
-            if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].toLowerCase().trim().contains(voisoSearch.text.toLowerCase().trim())){
+            if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].toLowerCase().trim().contains(normUsername(voisoSearch.text))){
               if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
                 filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
               }
             }
           }
         }else{
-          if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].contains(voisoSearch.text.toLowerCase().trim())){
+          if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].contains(normUsername(voisoSearch.text))){
             filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
           }
-          if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(voisoSearch.text.toLowerCase().trim()):false){
+          if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(normUsername(voisoSearch.text)):false){
             if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
               filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
             }
           }
-          if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(voisoSearch.text.toLowerCase().trim()):false){
+          if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(normUsername(voisoSearch.text)):false){
             if(!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])){
               filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
             }
           }
-          if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].toLowerCase().trim().contains(voisoSearch.text.toLowerCase().trim())) {
+          if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].toLowerCase().trim().contains(normUsername(voisoSearch.text))) {
             if (!filteredVoisoAgents.contains(voisoUsers[activeVoisoClusters.elementAt(i)][s])) {
               filteredVoisoAgents.add(voisoUsers[activeVoisoClusters.elementAt(i)][s]);
             }
@@ -1034,8 +1251,26 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     notifyListeners();
     return filteredVoisoAgents;
   }
-
-  getVoisoBalances(){
+  bool              hasVoiso(search) {
+    for(int i=0; i < activeVoisoClusters.length;i++){
+      for(int s=0; s<voisoUsers[activeVoisoClusters.elementAt(i)].length;s++){
+        if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].contains(search.toLowerCase().trim())){
+          return true;
+        }
+        if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(search.toLowerCase().trim()):false){
+          return true;
+        }
+        if(!(voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"]==null)?voisoUsers[activeVoisoClusters.elementAt(i)][s]["extension"].contains(search.toLowerCase().trim()):false){
+          return true;
+        }
+        if(voisoUsers[activeVoisoClusters.elementAt(i)][s]["email"].toLowerCase().trim().contains(search.toLowerCase().trim())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+                    getVoisoBalances(){
     Timer.periodic(Duration(seconds: 1), (timer) async {
       double sumBalances = 0;
       for(int i=0; i < voisoClusters.length;i++){
@@ -1057,12 +1292,37 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
           voisoBalances[voisoClusters.keys.toList()[i]] = 0;
         }
       }
-      balance = sumBalances;
+      balance = double.parse(sumBalances.toStringAsFixed(2));
       notifyListeners();
     });
   }
-
-  Future<bool> checkVoisoCluster(endpoint) async {
+                    getCPBalances(){
+    Timer.periodic(Duration(seconds: 1), (timer) async {
+      double sumBalances = 0;
+      for(int i=0; i < availCPs.length;i++){
+        String endpoint = "${availCPs.keys.toList()[i]}.voiso.com";
+        String method = "api/v1/${voisoClusters[availCPs.keys.toList()[i]]["center"]}/balance";
+        try {
+          final response = await http.get(
+            Uri.https(
+                endpoint, method
+            ),
+          );
+          if(jsonDecode(response.body).containsKey("error")){
+            voisoBalances[voisoClusters.keys.toList()[i]] = 0;
+          }else{
+            voisoBalances[voisoClusters.keys.toList()[i]] = jsonDecode(response.body)["balance"];
+            sumBalances = sumBalances + jsonDecode(response.body)["balance"];
+          }
+        } catch (_) {
+          voisoBalances[voisoClusters.keys.toList()[i]] = 0;
+        }
+      }
+      balance = double.parse(sumBalances.toStringAsFixed(2));
+      notifyListeners();
+    });
+  }
+  Future<bool>      checkVoisoCluster(endpoint) async {
     try {
       final response = await http.head(Uri.https("$endpoint.voiso.com"));
       return response.statusCode == 200;
@@ -1070,8 +1330,15 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       return false;
     }
   }
-
-  Future<bool> checkVoisoCCKey(cluster, center) async {
+  Future<bool>      checkCPCluster(endpoint) async {
+    try {
+      final response = await http.head(Uri.https("$endpoint.stats.pbx.commpeak.com"));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+  Future<bool>      checkVoisoCCKey(cluster, center) async {
     var endpoint = "$cluster.voiso.com";
     var method = "api/v1/$center/balance";
     final response = await http.get(
@@ -1085,8 +1352,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       return true;
     }
   }
-
-  Future<bool> checkVoisoUKey(cluster, agent) async {
+  Future<bool>      checkVoisoUKey(cluster, agent) async {
     var params = {
       "key": agent
     };
@@ -1107,8 +1373,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
       return false;
     }
   }
-
-  Future<bool> saveVoisoKeys(cluster, agent, center) async{
+  Future<bool>      saveVoisoKeys(cluster, agent, center) async{
     clusterValid = await checkVoisoCluster(cluster);
     userValid = await checkVoisoUKey(cluster, agent);
     centerValid = await checkVoisoCCKey(cluster, center);
@@ -1121,5 +1386,155 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
     }
     setData(serverAddr, "voiso", encrypt(jsonEncode(voisoClusters)).base64);
     return true;
+  }
+  Future<bool>      updateVoisoData() async{
+    setData(serverAddr, "voiso", encrypt(jsonEncode(voisoClusters)).base64);
+    return true;
+  }
+  Future<Map>       checkNumber(num) async {
+    numCheckStatus = "Parsing numbers";
+    isNumCheck = true;
+    numCheckProgress = 0;
+    notifyListeners();
+    Map checks = {};
+    numCheckVerdict = "";
+    List numbers = RegExp(r'\d+').allMatches(numinput.text).map((m) => m.group(0)).toList();
+    if(numbers.toString() == ""){
+      return checks;
+    }
+    for(int i=0;i<numbers.length;i++){
+      int number = int.parse(numbers[i].trim().replaceAll(RegExp(r'[^0-9]'), ''));
+      numCheckStatus = "Checking $number on UNIVoIP (1/2)";
+      numCheckProgress = numbers.length<2?0:(i)/numbers.length;
+      notifyListeners();
+      checks[number] = {};
+      numCheckVerdict = "$numCheckVerdict${number.toString()}";
+      await checkUNIFixed(number).then((value) async {
+        numCheckStatus = "Checking $number on UNIVoIP (2/2)";
+        numCheckProgress = numbers.length<2?0:(i+0.25)/numbers.length;
+        notifyListeners();
+        checks[number]["UNIFixed"] = value;
+        await checkUNIHLR(number).then((value) async {
+          numCheckStatus = "Checking $number on CommPeak";
+          numCheckProgress = numbers.length<2?0:(i+0.5)/numbers.length;
+          notifyListeners();
+          checks[number]["UNIHLR"] = value;
+          await checkCP(number).then((value) async {
+            numCheckStatus = "Got HRL for $number";
+            numCheckProgress = numbers.length<2?0:(i+0.75)/numbers.length;
+            checks[number]["CP"] = value;
+            bool isValid = false;
+            bool isMobile = false;
+            bool isAvailable = false;
+
+            if(checks[number]["UNIFixed"]["error"] == 1 && checks[number]["UNIHLR"]["error"]==1){
+              await logAdd("UNIVoip is unavailable for HLR", "error", "voip", false);
+              if(checks[number]["CP"]["hlr"]["hlr_status"]=="Active"){
+                isAvailable = true;
+              }
+              if(checks[number]["CP"]["validation"]["mobile"]){
+                isMobile = true;
+              }
+              if(checks[number]["CP"]["validation"]["valid"]){
+                isValid = true;
+              }
+            }else{
+              if(checks[number]["UNIHLR"]["result"]=="DELIVERED" && checks[number]["CP"]["hlr"]["hlr_status"]=="Active"){
+                isAvailable = true;
+              }
+              if(checks[number]["UNIFixed"]["result"]=="mobile" && checks[number]["CP"]["validation"]["mobile"]){
+                isMobile = true;
+              }
+              if(checks[number]["CP"]["validation"]["valid"]){
+                isValid = true;
+              }
+            }
+            await logAdd("HLR test performed for $number", "info", "voip", false);
+            numCheckVerdict = "$numCheckVerdict - ${isValid?"Valid, ${isMobile?"Mobile, ${(isAvailable)?"Available":"Unreachable"}":"Fixed"}":"Invalid"}";
+
+            // if(checks[number]["UNIFixed"]["error"] == 1 && checks[number]["UNIHLR"]["error"]==1){
+            //   if(checks[number]["CP"]["validation"]["mobile"]){
+            //     verdict = "$verdict - Valid${checks[number]["CP"]["validation"]["number_type"]==null?"":" (${checks[number]["CP"]["validation"]["mobile"]==null?"Unavailable":checks[number]["CP"]["validation"]["mobile"]?"Mobile":"Fixed"}, ${checks[number]["CP"]["result"]})"}";
+            //   }else{
+            //     verdict = "$verdict - Invalid (${checks[number]["CP"]["result"]=="unsupported request"?"${checks[number]["CP"]["validation"]["mobile"]==null?"Unavailable/":checks[number]["CP"]["validation"]["mobile"]?"Mobile/":"Fixed/"}${checks[number]["CP"]["validation"]["number_type"]}":checks[number]["CP"]["result"]})";
+            //   }
+            // }else{
+            //   if(checks[number]["UNIFixed"]["result"]=="mobile" && checks[number]["CP"]["validation"]["mobile"] && checks[number]["UNIHLR"]["result"]=="DELIVERED"){
+            //     verdict = "$verdict - Valid${checks[number]["CP"]["validation"]["number_type"]==null?"":" (${checks[number]["CP"]["validation"]["mobile"]==null?"Unavailable":checks[number]["CP"]["validation"]["mobile"]?"Mobile":"Fixed"}, ${checks[number]["CP"]["result"]})"}";
+            //   }else{
+            //     verdict = "$verdict - Invalid (${checks[number]["CP"]["result"]=="unsupported request"?"${checks[number]["CP"]["validation"]["mobile"]==null?"Unavailable/":checks[number]["CP"]["validation"]["mobile"]?"Mobile/":"Fixed/"}${checks[number]["CP"]["validation"]["number_type"]}":checks[number]["CP"]["validation"]["number_type"]})";
+            //   }
+            // }
+            if(i+1<numbers.length){
+              numCheckVerdict = "$numCheckVerdict\n";
+            }
+          });
+        });
+      });
+    }
+    await Clipboard.setData(ClipboardData(text: numCheckVerdict));
+    numCheckResult = checks;
+    isNumCheck = false;
+    return checks;
+  }
+  Future<Map>       checkCP(number) async {
+    var headers = {
+      "Authorization": "1dd38d6df256bfc96229aada394752cc"//hardcoded key is bad
+    };
+    var endpoint = "hlr.commpeak.com";
+    var method = "sync/hlr/$number";
+    final response = await http.get(
+        Uri.https(
+            endpoint, method
+        ),
+        headers: headers
+    );
+    return jsonDecode(response.body);
+  }
+  Future<Map>       checkUNIHLR(number) async {
+    // return {"error":1,"result":"Server unavailable"};
+    var params = {
+      "loc": "voip_api_get_hlr"
+    };
+    var body = {
+      "token": "2d4a81cc23a4ae7f4d2e0d609370ae12",//hardcoded key is bad
+      "number": number.toString()
+    };
+    var endpoint = "univoip.co";
+    var method = "";
+    try {
+      final response = await http.post (
+          Uri.https(
+              endpoint, method,params
+          ),
+          body: body
+      );
+      return jsonDecode(response.body);
+    } catch (_) {
+      return {"error":1,"result":"Server unavailable"};
+    }
+  }
+  Future<Map>       checkUNIFixed(number) async {
+    // return {"error":1,"result":"Server unavailable"};
+    var params = {
+      "loc": "voip_api_get_mobile"
+    };
+    var body = {
+      "token": "2d4a81cc23a4ae7f4d2e0d609370ae12",//hardcoded key is bad
+      "number": number.toString()
+    };
+    var endpoint = "univoip.co";
+    var method = "";
+    try {
+      final response = await http.post (
+          Uri.https(
+              endpoint, method,params
+          ),
+          body: body
+      );
+      return jsonDecode(response.body);
+    } catch (_) {
+      return {"error":1,"result":"Server unavailable"};
+    }
   }
 }

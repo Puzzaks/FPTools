@@ -78,7 +78,7 @@ class LogsPageState extends State<LogsPage> {
                                 entryColor = Theme.of(context).colorScheme.background;
                                 break;
                               case("error"):
-                                entryColor = Theme.of(context).colorScheme.errorContainer;
+                                entryColor = Theme.of(context).colorScheme.error;
                                 break;
                               default:entryColor = Colors.transparent;
                             }
@@ -106,6 +106,9 @@ class LogsPageState extends State<LogsPage> {
                                 break;
                               case "login":
                                 logIco = Icon(Icons.login_rounded);
+                                break;
+                              case "voip":
+                                logIco = Icon(Icons.dialer_sip_rounded);
                                 break;
                               default:
                                 logIco = Icon(Icons.question_mark_rounded);
