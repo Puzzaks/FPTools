@@ -79,7 +79,8 @@ class VoisoClustersState extends State<VoisoClusters> {
                                           children: [
                                             Text(
                                               "${engine.allClusters[clustername]} $clustername",
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,
+                                                  fontFamily: engine.demoMode?"Flow":null),
                                             ),
                                             Text(
                                               engine.voisoBalances.containsKey(clustername)
@@ -87,6 +88,9 @@ class VoisoClustersState extends State<VoisoClusters> {
                                                       ? "Error getting balance"
                                                       : "${engine.voisoBalances[clustername].toString()}\$"
                                                   : "Error getting balance",
+                                              style: TextStyle(
+                                                  fontFamily: engine.demoMode?"Flow":null
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -575,6 +579,9 @@ class AgentsPageState extends State<AgentsPage> {
                         },
                         enableSearch: true,
                         label: const Text("Voiso Cluster"),
+                  textStyle: TextStyle(
+                  fontFamily: engine.demoMode?"Flow":null
+              ),
                         leadingIcon: const Icon(Icons.sip_rounded),
                         dropdownMenuEntries: engine.voisoClusters.keys.toList().map((cluster) {
                           return DropdownMenuEntry(value: cluster, label: cluster);
@@ -625,7 +632,8 @@ class AgentsPageState extends State<AgentsPage> {
                                                   children: [
                                                     Text(
                                                       agent["name"],
-                                                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18,
+                                                          fontFamily: engine.demoMode?"Flow":null),
                                                     ),
                                                     Wrap(
                                                       direction: Axis.horizontal,
@@ -660,7 +668,10 @@ class AgentsPageState extends State<AgentsPage> {
                                                   ],
                                                 ),
                                                 Text(
-                                                    "${agent["extension"] == null ? "" : "${agent["extension"]} • "}${agent["sag"] == "Supervisor" ? "Supervisor in ${agent["supervisor_in_teams"].split(", ").length} team${agent["supervisor_in_teams"].split(", ").length % 10 == 1 ? "" : "s"}" : agent["sag"]} • ${agent["email"]} • ${agent["timezone"]}")
+                                                    "${agent["extension"] == null ? "" : "${agent["extension"]} • "}${agent["sag"] == "Supervisor" ? "Supervisor in ${agent["supervisor_in_teams"].split(", ").length} team${agent["supervisor_in_teams"].split(", ").length % 10 == 1 ? "" : "s"}" : agent["sag"]} • ${agent["email"]} • ${agent["timezone"]}",
+                                                  style: TextStyle(
+                                                      fontFamily: engine.demoMode?"Flow":null
+                                                  ),)
                                               ],
                                             ),
                                             Padding(
@@ -1489,7 +1500,7 @@ class CDRPageState extends State<CDRPage> {
                     await Clipboard.setData(ClipboardData(text: formatCopy));
                   }
                       : !engine.voisoCDR.containsKey(engine.dropController.text.split(": ")[1])?null:() async {
-                    String formatCopy = "Number	First call / Date	Sum calls / Agent	Office / Team	Call duration	Status\n";
+                    String formatCopy = "Number	First call / Date	Sum calls / Agent	Office / Team	Call duration	Status	Line\n";
                     for (int n = 0; n < engine.voisoCDR[engine.dropController.text.split(": ")[1]].length; n++) {
                       String number = engine.voisoCDR[engine.dropController.text.split(": ")[1]].keys.toList()[n];
                       if (engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].isEmpty) {
@@ -1513,6 +1524,8 @@ class CDRPageState extends State<CDRPage> {
                             formatCopy = "$formatCopy	${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][e]["duration"]}";
                             formatCopy =
                             "$formatCopy	${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][e]["disposition"][0].toUpperCase()}${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][e]["disposition"].substring(1).toLowerCase().split("_")[0]}${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][e]["disposition"].split("_").length > 1 ? " ${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][e]["disposition"].split("_")[1][0].toUpperCase()}${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][e]["disposition"].split("_")[1].substring(1).toLowerCase().split("_")[0]}" : ""}";
+                            formatCopy =
+                            "$formatCopy	${engine.getVoisoNumberInfo(engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][e]["from"])["cid_groups"][0]["name"]}";
                             formatCopy = "$formatCopy\n";
                           }
                         }
@@ -1524,7 +1537,7 @@ class CDRPageState extends State<CDRPage> {
                 ),
                 body: Column(
                   children: [
-                    scaffoldWidth > 800?Container():Row(
+                    scaffoldWidth > 1000?Container():Row(
                       children: [
                         Container(
                           width: (scaffoldWidth/2),
@@ -1535,6 +1548,9 @@ class CDRPageState extends State<CDRPage> {
                               keyboardType: TextInputType.multiline,
                               expands: false,
                               minLines: null,
+                              style: TextStyle(
+                                  fontFamily: engine.demoMode?"Flow":null
+                              ),
                               maxLines: null,
                               decoration: const InputDecoration(
                                 constraints: BoxConstraints(maxHeight: 55),
@@ -1555,6 +1571,9 @@ class CDRPageState extends State<CDRPage> {
                               expands: false,
                               minLines: null,
                               maxLines: null,
+                              style: TextStyle(
+                                  fontFamily: engine.demoMode?"Flow":null
+                              ),
                               decoration: const InputDecoration(
                                 constraints: BoxConstraints(maxHeight: 55),
                                 labelText: 'Numbers To',
@@ -1577,6 +1596,9 @@ class CDRPageState extends State<CDRPage> {
                             onSelected: (cluster) {
                               print(engine.dropController.text.split(": ")[1]);
                             },
+                            textStyle: TextStyle(
+                                fontFamily: engine.demoMode?"Flow":null
+                            ),
                             enableSearch: true,
                             label: const Text("Cluster"),
                             width: 180,
@@ -1616,28 +1638,61 @@ class CDRPageState extends State<CDRPage> {
                             ),
                           ),
                         ),
-                        scaffoldWidth < 800?Container():Container(
+                        scaffoldWidth < 1000?Container():Container(
                           width: (scaffoldWidth - 625),
-                          child: Padding(
-                            padding: const EdgeInsets.all(5),
-                            child: TextField(
-                              controller: engine.cdrSearch,
-                              keyboardType: TextInputType.multiline,
-                              expands: false,
-                              minLines: null,
-                              maxLines: null,
-                              onChanged: (v){
-                                setState(() {
-
-                                });
-                              },
-                              decoration: const InputDecoration(
-                                constraints: BoxConstraints(maxHeight: 55),
-                                labelText: 'Numbers',
-                                border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
+                          child: Row(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(left:5),
+                                child: Container(
+                                  width: ((scaffoldWidth - 635)/2),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(5),
+                                    child: TextField(
+                                      controller: engine.cdrFromSearch,
+                                      keyboardType: TextInputType.multiline,
+                                      expands: false,
+                                      style: TextStyle(
+                                          fontFamily: engine.demoMode?"Flow":null
+                                      ),
+                                      minLines: null,
+                                      maxLines: null,
+                                      decoration: const InputDecoration(
+                                        constraints: BoxConstraints(maxHeight: 55),
+                                        labelText: 'Numbers From',
+                                        border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                              Padding(
+                                padding: const EdgeInsets.only(left:5),
+                                child: Container(
+                                  width: ((scaffoldWidth - 635)/2),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(5),
+                                    child: TextField(
+                                      controller: engine.cdrSearch,
+                                      keyboardType: TextInputType.multiline,
+                                      expands: false,
+                                      style: TextStyle(
+                                          fontFamily: engine.demoMode?"Flow":null
+                                      ),
+                                      minLines: null,
+                                      maxLines: null,
+                                      decoration: const InputDecoration(
+                                        constraints: BoxConstraints(maxHeight: 55),
+                                        labelText: 'Numbers To',
+                                        border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Colors.grey)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            ],
                           ),
                         ),
                         Container(
@@ -1671,7 +1726,7 @@ class CDRPageState extends State<CDRPage> {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     Container(
-                      height: scaffoldWidth > 800?scaffoldHeight - 72:scaffoldHeight - 144,
+                      height: scaffoldWidth > 1000?scaffoldHeight - 72:scaffoldHeight - 144,
                       child: SingleChildScrollView(
                         child: ((engine.dropController.text.contains("CP: ") || engine.dropController.text.contains("Voiso: ")) && engine.allClusters.containsKey(engine.dropController.text.split(": ")[1]))
                             ?engine.dropController.text.split(": ")[0] == "CP"
@@ -1689,7 +1744,8 @@ class CDRPageState extends State<CDRPage> {
                                   children: [
                                     Text(
                                       "${number.toString()} • No calls",
-                                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16,
+                                          fontFamily: engine.demoMode?"Flow":null),
                                     ),
                                   ],
                                 ),
@@ -1705,10 +1761,14 @@ class CDRPageState extends State<CDRPage> {
                                         children: [
                                           Text(
                                             "${number.toString()} • ${engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length} call${engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length == 11 ? "s" : engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length % 10 == 1 ? "" : "s"}",
-                                            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16,
+                                                fontFamily: engine.demoMode?"Flow":null),
                                           ),
                                           Text(
-                                              "First call: ${DateTime.parse(engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["call_start"]).toIso8601String().split("T")[0].split("-")[2]}.${DateTime.parse(engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["call_start"]).toIso8601String().split("T")[0].split("-")[1]}.${DateTime.parse(engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["call_start"]).toIso8601String().split("T")[0].split("-")[0]} by ${engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["agent_name"]} (${engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["desks"]})")
+                                              "First call: ${DateTime.parse(engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["call_start"]).toIso8601String().split("T")[0].split("-")[2]}.${DateTime.parse(engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["call_start"]).toIso8601String().split("T")[0].split("-")[1]}.${DateTime.parse(engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["call_start"]).toIso8601String().split("T")[0].split("-")[0]} by ${engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["agent_name"]} (${engine.cpCDR[engine.dropController.text.split(": ")[1]][number][engine.cpCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["desks"]})",
+                                            style: TextStyle(
+                                                fontFamily: engine.demoMode?"Flow":null
+                                            ),)
                                         ],
                                       ),
                                       children: engine.cpCDR[engine.dropController.text.split(": ")[1]][number]
@@ -1727,7 +1787,8 @@ class CDRPageState extends State<CDRPage> {
                                                     children: [
                                                       Text(
                                                         "${entry["agent_name"]} (${entry["desks"]})",
-                                                        style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                                                        style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16,
+                                                            fontFamily: engine.demoMode?"Flow":null),
                                                       ),
                                                     ],
                                                   ),
@@ -1780,7 +1841,8 @@ class CDRPageState extends State<CDRPage> {
                                   children: [
                                     Text(
                                       "${number.toString()} • No calls",
-                                      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16,
+                                          fontFamily: engine.demoMode?"Flow":null),
                                     ),
                                   ],
                                 ),
@@ -1797,10 +1859,14 @@ class CDRPageState extends State<CDRPage> {
                                         children: [
                                           Text(
                                             "${number.toString()=="0"?"Calls from ${engine.getVoisoNumberInfo(engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][0]["from"])["cid_groups"][0]["name"]}":number.toString()} • ${number.toString()=="0"?"${engine.numbersFromAmountCalls[engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][0]["from"]]} call${engine.numbersFromAmountCalls[engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][0]["from"]] == 11 ? "s" : engine.numbersFromAmountCalls[engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][0]["from"]] % 10 == 1 ? "" : "s"}":"${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].length} call${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].length == 11 ? "s" : engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].length % 10 == 1 ? "" : "s"}"}",
-                                            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16,
+                                                fontFamily: engine.demoMode?"Flow":null),
                                           ),
                                           Text(
-                                              "First call: ${firstCallDate.toIso8601String().split("T")[0].split("-")[2]}.${firstCallDate.toIso8601String().split("T")[0].split("-")[1]}.${firstCallDate.toIso8601String().split("T")[0].split("-")[0]} by ${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["agent"] == null?"[No agent lol]":engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["agent"]} (${engine.getTeamName(engine.getTeamByUserId(engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["agent_id"]))})")
+                                              "First call: ${firstCallDate.toIso8601String().split("T")[0].split("-")[2]}.${firstCallDate.toIso8601String().split("T")[0].split("-")[1]}.${firstCallDate.toIso8601String().split("T")[0].split("-")[0]} by ${engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["agent"] == null?"[No agent lol]":engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["agent"]} (${engine.getTeamName(engine.getTeamByUserId(engine.voisoCDR[engine.dropController.text.split(": ")[1]][number][engine.voisoCDR[engine.dropController.text.split(": ")[1]][number].length - 1]["agent_id"]))})",
+                                            style: TextStyle(
+                                                fontFamily: engine.demoMode?"Flow":null
+                                            ),)
                                         ],
                                       ),
                                       children: engine.voisoCDR[engine.dropController.text.split(": ")[1]][number]
@@ -1822,7 +1888,8 @@ class CDRPageState extends State<CDRPage> {
                                                       children: [
                                                         Text(
                                                           "${entry["agent"] == null?"[No agent lol]":entry["agent"]} (${engine.getTeamName(engine.getTeamByUserId(entry["agent_id"]))}) • ${entry["disposition"][0].toUpperCase()}${entry["disposition"].substring(1).toLowerCase().split("_")[0]}${entry["disposition"].split("_").length > 1 ? " ${entry["disposition"].split("_")[1][0].toUpperCase()}${entry["disposition"].split("_")[1].substring(1).toLowerCase().split("_")[0]}" : ""} • ${entry["duration"]}",
-                                                          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                                                          style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16,
+                                                              fontFamily: engine.demoMode?"Flow":null),
                                                         ),
                                                       ],
                                                     ),
@@ -1862,7 +1929,10 @@ class CDRPageState extends State<CDRPage> {
                                                                 ),
                                                               );
                                                             }else{
-                                                              return Text("${entry["from"]} > ${entry["to"]}");
+                                                              return Text("${entry["from"]} > ${entry["to"]}",
+                                                                style: TextStyle(
+                                                                    fontFamily: engine.demoMode?"Flow":null
+                                                                ),);
                                                             }
                                                           },
                                                         )

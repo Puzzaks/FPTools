@@ -147,10 +147,14 @@ class ServersPageState extends State<ServersPage> {
                                                   children: [
                                                     Text(
                                                       engine.known[server]["name"],
-                                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18,
+                                                          fontFamily: engine.demoMode?"Flow":null),
                                                     ),
                                                     Text(
                                                       "${engine.known[server]["user"]}@${server} • ${engine.availables[server]?DateTime.parse(engine.logins[server]["data"]["expire"]).difference(DateTime.now()).inMinutes > 0 ? "Logged in (${DateTime.parse(engine.logins[server]["data"]["expire"]).difference(DateTime.now()).inMinutes} min left)" : "Logging back in...":"Server unavailable"}",
+                                                      style: TextStyle(
+                                                          fontFamily: engine.demoMode?"Flow":null
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
@@ -278,6 +282,7 @@ class ServersPageState extends State<ServersPage> {
                                                             label: Text(
                                                               "${domain["data"][0]["name"]}",
                                                               style: TextStyle(
+                                                              fontFamily: engine.demoMode?"Flow":null,
                                                                 fontWeight:
                                                                 enabled ? FontWeight.w600 : FontWeight.w400,
                                                                 color: enabled

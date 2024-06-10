@@ -251,6 +251,7 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   bool isNumCheck = false;
   List voisoNumbers = [];
   Map numbersFromAmountCalls = {};
+  bool demoMode = false;
 
 
   String            decrypt(Encrypted encryptedData) {
@@ -645,27 +646,27 @@ class fastEngine extends HttpOverrides with material.ChangeNotifier{
   }
   Future            getDomains(ip) async{
     await checkLogin(ip);
-    var out = [];
-    await fastpanelSites(ip, logins[ip]["token"]).then((site) {
-      for(int i=0;i < site["data"].length;i++){
-        fastpanelDomains(ip,site["data"][i]["id"], logins[ip]["token"]).then((domain) {
-          if(domain["data"].length > 0){
-            if(!domain["data"][0]["name"].contains("smtp.")){
-              if(!availdomains.containsKey(ip)){
-                availdomains[ip] = [];
+    if(!availdomains.containsKey(ip)){
+      await fastpanelSites(ip, logins[ip]["token"]).then((site) {
+        for(int i=0;i < site["data"].length;i++){
+          fastpanelDomains(ip, site["data"][i]["id"], logins[ip]["token"]).then((domain) {
+            if(domain["data"].length > 0){
+              if(!domain["data"][0]["name"].contains("smtp.")){
+                if(!availdomains.containsKey(ip)){
+                  availdomains[ip] = [];
+                }
+                if(!domainNames.contains(domain["data"][0]["name"])){
+                  availdomains[ip].add(domain);
+                  domainNames.add(domain["data"][0]["name"]);
+                }
               }
-              if(!domainNames.contains(domain["data"][0]["name"])){
-                availdomains[ip].add(domain);
-                domainNames.add(domain["data"][0]["name"]);
-              }
-              out.add(domain);
             }
-          }
-          notifyListeners();
-        });
-      }
-    });
-    return out;
+            notifyListeners();
+          });
+        }
+      });
+    }
+    return availdomains[ip];
   }
   Future <String?>  checkLogin(ip) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();

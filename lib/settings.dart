@@ -92,6 +92,39 @@ class SettingsPageState extends State<SettingsPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
+                                      "Demo mode",
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                    ),
+                                    Text(
+                                      "Hide sensitive data in UI",
+                                    )
+                                  ],
+                                ),
+                                Switch(
+                                  thumbIcon: thumbIcon,
+                                  value: engine.demoMode,
+                                  onChanged: (bool value) {
+                                    setState(() {
+                                      engine.demoMode = value;
+                                      engine.saveToggle("demoMode", value);
+                                    });
+                                  },
+                                )
+                              ],
+                            ),
+                          ),
+                        ), // Demo mode
+                        Card(
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
                                       "Display less users",
                                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                     ),

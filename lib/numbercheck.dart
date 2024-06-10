@@ -272,6 +272,9 @@ class NumberCheckPageState extends State<NumberCheckPage> {
                                                 width: 120,
                                                 child: Text(
                                                   number.toString(),
+                                                  style: TextStyle(
+                                                      fontFamily: engine.demoMode?"Flow":null
+                                                  ),
                                                 ),
                                               ),
                                               const VerticalDivider(),
@@ -400,7 +403,9 @@ class NumberCheckPageState extends State<NumberCheckPage> {
                                                               ),
                                                               Text(
                                                                 "${engine.numCheckResult[number]["CP"]["validation"]["international"]==null?"Incorrect number":engine.numCheckResult[number]["CP"]["validation"]["international"]}",
-                                                                style: const TextStyle(),
+                                                                  style: TextStyle(
+                                                                  fontFamily: engine.demoMode?"Flow":null
+                                                              ),
                                                               )
                                                             ],
                                                           ),
@@ -561,7 +566,8 @@ class NumberCheckPageState extends State<NumberCheckPage> {
                                                                 padding: const EdgeInsets.only(bottom: 0),
                                                                 child:Text(
                                                                   "Call ${number.toString()}",
-                                                                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18,
+                                                                      fontFamily: engine.demoMode?"Flow":null),
                                                                 )
                                                             ),
                                                             Padding(

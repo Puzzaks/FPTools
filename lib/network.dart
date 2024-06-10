@@ -179,6 +179,7 @@ Future fastpanelDomains(ip, site, key) async {
   };
   var endpoint = "$ip:8888";
   var method = "api/sites/$site/email/domains";
+  // print("Loading: ${Uri.https(endpoint, method)}");
   final response = await http.get(
       Uri.https(endpoint, method),
       headers: headers

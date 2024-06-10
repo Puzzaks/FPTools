@@ -326,6 +326,9 @@ class MyAppState extends State<MyApp> {
                                                             Text(
                                                               engine.balance == 0? "Not configured"
                                                                   :"${engine.balance.toString()}\$ total",
+                                                              style: TextStyle(
+                                                                fontFamily: engine.demoMode?"Flow":null
+                                                              ),
                                                             )
                                                           ],
                                                         ),
@@ -515,6 +518,9 @@ class MyAppState extends State<MyApp> {
                                                         engine.recentRemoteCreate["name"],
                                                         maxLines: 1,
                                                         overflow: TextOverflow.ellipsis,
+                                                        style: TextStyle(
+                                                            fontFamily: engine.demoMode?"Flow":null
+                                                        ),
                                                       ),
                                                     )
                                                   ],

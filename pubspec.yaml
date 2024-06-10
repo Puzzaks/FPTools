@@ -35,3 +35,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/app_logo.png
+
+  fonts:
+    - family: Flow
+      fonts:
+        - asset: assets/fonts/FlowCircular-Regular.ttf
