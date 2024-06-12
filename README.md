@@ -10,6 +10,7 @@ Application that leverages FastPanel API to manage multiple instances simultaneo
 ---
 #### App features
  - UI, optimised for multiple screen sizes and split-screen work
+ - Automatic theme change, based on system color and mode
  - Copying from clipboard for faster user creation:
  ![App feature 1](assets/app_feature_clipboard.png)
  - Pasting to clipboard for easier user management in spreadsheets
