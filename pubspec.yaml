@@ -1,0 +1,42 @@
+name: onetool
+description: "onetool"
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  http: ^0.13.3
+  xml: ^5.0.0
+  intl: ^0.18.0
+  dynamic_color: ^1.6.9
+  shared_preferences: ^2.2.2
+  shared_preferences_windows: ^2.3.2
+  provider: ^6.0.5
+  window_manager: ^0.2.7
+  dart_ping: ^9.0.1
+  encrypt: ^5.0.3
+  crypto: ^3.0.3
+  collection: ^1.18.0
+  package_info_plus: ^4.0.2
+  latinize: '>=0.0.1 <1.0.0'
+  url_launcher: ^6.1.6
+  flutter:
+    sdk: flutter
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/app_logo.png
+
+  fonts:
+    - family: Flow
+      fonts:
+        - asset: assets/fonts/FlowCircular-Regular.ttf
