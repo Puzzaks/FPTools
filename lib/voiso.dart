@@ -655,7 +655,8 @@ class AgentsPageState extends State<AgentsPage> {
                                                                 elevation: 5,
                                                                 label: Text(
                                                                   engine.getTeamName(teamid),
-                                                                  style: const TextStyle(
+                                                                  style: TextStyle(
+                                                                    fontFamily: engine.demoMode?"Flow":null,
                                                                     height: 0.5,
                                                                   ),
                                                                 ),
@@ -825,6 +826,7 @@ class NewAgentPageState extends State<NewAgentPage> {
                                         controller: engine.voisoUserName,
                                         onChanged: null,
                                         readOnly: true,
+                                        style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,
                                         decoration: const InputDecoration(
                                           prefixIcon: Icon(Icons.person_rounded),
                                           labelText: 'Name',
@@ -838,6 +840,7 @@ class NewAgentPageState extends State<NewAgentPage> {
                                         controller: engine.voisoUserEmail,
                                         onChanged: null,
                                         readOnly: true,
+                                        style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,
                                         decoration: const InputDecoration(
                                           prefixIcon: Icon(Icons.alternate_email_rounded),
                                           labelText: 'Email',
@@ -852,6 +855,7 @@ class NewAgentPageState extends State<NewAgentPage> {
                                         onChanged: null,
                                         readOnly: true,
                                         obscureText: true,
+                                        style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,
                                         decoration: const InputDecoration(
                                           prefixIcon: Icon(Icons.password_rounded),
                                           labelText: 'Password',
@@ -899,6 +903,7 @@ class NewAgentPageState extends State<NewAgentPage> {
                                                   controller: engine.voisoUserExtension,
                                                   onChanged: null,
                                                   readOnly: true,
+                                                  style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,
                                                   decoration: const InputDecoration(
                                                     prefixIcon: Icon(Icons.numbers_rounded),
                                                     labelText: 'Extension',
@@ -970,7 +975,8 @@ class NewAgentPageState extends State<NewAgentPage> {
                                                                 backgroundColor: Colors.transparent,
                                                                 side: const BorderSide(color: Colors.transparent),
                                                                 elevation: 5,
-                                                                label: Text(engine.getTeamName(teamid)),
+                                                                label: Text(engine.getTeamName(teamid),
+                                                                    style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,),
                                                               ),
                                                             );
                                                           })
@@ -1022,7 +1028,8 @@ class NewAgentPageState extends State<NewAgentPage> {
                                                                 backgroundColor: Colors.transparent,
                                                                 side: const BorderSide(color: Colors.transparent),
                                                                 elevation: 5,
-                                                                label: Text(engine.getTeamName(teamid)),
+                                                                label: Text(engine.getTeamName(teamid),
+                                                                  style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,),
                                                               ),
                                                             );
                                                           })
@@ -1101,6 +1108,7 @@ class NewAgentPageState extends State<NewAgentPage> {
                                       controller: engine.voisoUserName,
                                       onChanged: null,
                                       readOnly: true,
+                                      style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,
                                       decoration: const InputDecoration(
                                         prefixIcon: Icon(Icons.person_rounded),
                                         labelText: 'Name',
@@ -1114,6 +1122,7 @@ class NewAgentPageState extends State<NewAgentPage> {
                                       controller: engine.voisoUserEmail,
                                       onChanged: null,
                                       readOnly: true,
+                                      style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,
                                       decoration: const InputDecoration(
                                         prefixIcon: Icon(Icons.alternate_email_rounded),
                                         labelText: 'Email',
@@ -1128,6 +1137,7 @@ class NewAgentPageState extends State<NewAgentPage> {
                                       onChanged: null,
                                       readOnly: true,
                                       obscureText: true,
+                                      style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,
                                       decoration: const InputDecoration(
                                         prefixIcon: Icon(Icons.password_rounded),
                                         labelText: 'Password',
@@ -1169,6 +1179,7 @@ class NewAgentPageState extends State<NewAgentPage> {
                                           controller: engine.voisoUserExtension,
                                           onChanged: null,
                                           readOnly: true,
+                                          style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,
                                           decoration: const InputDecoration(
                                             prefixIcon: Icon(Icons.numbers_rounded),
                                             labelText: 'Extension',
@@ -1232,7 +1243,8 @@ class NewAgentPageState extends State<NewAgentPage> {
                                                               backgroundColor: Colors.transparent,
                                                               side: const BorderSide(color: Colors.transparent),
                                                               elevation: 5,
-                                                              label: Text(engine.getTeamName(teamid)),
+                                                              label: Text(engine.getTeamName(teamid),
+                                                                style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,),
                                                             ),
                                                           );
                                                         })
@@ -1284,7 +1296,8 @@ class NewAgentPageState extends State<NewAgentPage> {
                                                               backgroundColor: Colors.transparent,
                                                               side: const BorderSide(color: Colors.transparent),
                                                               elevation: 5,
-                                                              label: Text(engine.getTeamName(teamid)),
+                                                              label: Text(engine.getTeamName(teamid),
+                                                                style: engine.demoMode?TextStyle(fontFamily: "Flow"):null,),
                                                             ),
                                                           );
                                                         })

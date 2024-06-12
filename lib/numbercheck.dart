@@ -299,7 +299,7 @@ class NumberCheckPageState extends State<NumberCheckPage> {
                                                       child: Column(
                                                         crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
-                                                          const Padding(
+                                                          Padding(
                                                               padding: EdgeInsets.only(bottom: 5),
                                                               child:Row(
                                                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -307,11 +307,13 @@ class NumberCheckPageState extends State<NumberCheckPage> {
                                                                 children: [
                                                                   Text(
                                                                     "UNIVoip",
-                                                                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
+                                                                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18,fontFamily: engine.demoMode?"Flow":null),
                                                                   ),
                                                                   Text(
                                                                     "бесценно",
-                                                                    style: TextStyle(),
+                                                                    style: TextStyle(
+                                                                      fontFamily: engine.demoMode?"Flow":null,
+                                                                    ),
                                                                   )
                                                                 ],
                                                               )

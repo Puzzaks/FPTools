@@ -473,7 +473,7 @@ class UsersPageState extends State<UsersPage> {
                                                                     child: Column(
                                                                       crossAxisAlignment: CrossAxisAlignment.start,
                                                                       children: accounts.map((account) {
-                                                                        return Text(" • ${account["address"]}");
+                                                                        return Text(" • ${account["address"]}",style: TextStyle(fontFamily: "Flow"),);
                                                                       }).toList(),
                                                                     ),
                                                                   ),
@@ -1453,6 +1453,7 @@ class NewUserPageState extends State<NewUserPage> {
                                                   "${crD["name"]}",
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.w400,
+                                                      fontFamily: engine.demoMode?"Flow":null,
                                                     color: engine.userDomains.contains(crD)
                                                         ? Theme.of(context).colorScheme.background
                                                         : MaterialStateColor.resolveWith((states) => engine.glowDomains.containsKey(crD["name"])?Theme.of(context).colorScheme.primary:Colors.grey),
