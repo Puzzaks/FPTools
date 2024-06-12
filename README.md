@@ -1,5 +1,6 @@
 # FPTools
 ##### Email and VoIP management tools built with Flutter
+![App Demo Video](assets/app_demo.gif)
 ---
 ###### Problem
 Having multiple FastPanel instances to manage multiple SMTP domains is slow and time-consuming. Having multiple Voiso and CommPeak clusters adds to complexity and slows done the workflow.
