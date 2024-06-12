@@ -6,7 +6,7 @@
 Having multiple FastPanel instances to manage multiple SMTP domains is slow and time-consuming. Having multiple Voiso and CommPeak clusters adds to complexity and slows done the workflow.
 ###### Solution
 Application that leverages FastPanel API to manage multiple instances simultaneously to ease creation, removal and management of users. Having option to view Voiso balance and users of multiple clusters helps with that too.
-
+> THIS APP IS UNFINISHED! This app is a tool I've made for my work, it is made in a way that it could be adapted to other systems (like other email servers and VoIPs) but it ultimately is a WiP app that will likely be never finished or maintained. Use at your own risc!
 ---
 #### App features
  - UI, optimised for multiple screen sizes and split-screen work
