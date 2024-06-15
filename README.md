@@ -3,10 +3,10 @@
 ![App Demo Video](assets/app_demo.gif)
 ---
 ###### Problem
-Having multiple FastPanel instances to manage multiple SMTP domains is slow and time-consuming. Having multiple Voiso and CommPeak clusters adds to complexity and slows done the workflow.
+Having multiple FastPanel instances to manage multiple SMTP domains is slow and time-consuming. Having multiple Voiso and CommPeak clusters adds to complexity and slows down the workflow.
 ###### Solution
 Application that leverages FastPanel API to manage multiple instances simultaneously to ease creation, removal and management of users. Having option to view Voiso balance and users of multiple clusters helps with that too.
-> THIS APP IS UNFINISHED! This app is a tool I've made for my work, it is made in a way that it could be adapted to other systems (like other email servers and VoIPs) but it ultimately is a WiP app that will likely be never finished or maintained. Use at your own risc!
+> THIS APP IS UNFINISHED! This app is a tool I've made for my job, it is made in a way that it could be adapted to other systems (like other email servers and VoIPs) but it ultimately is a WiP app that will likely be never finished or maintained. Use at your own risk!
 ---
 #### App features
  - UI, optimised for multiple screen sizes and split-screen work
@@ -16,15 +16,15 @@ Application that leverages FastPanel API to manage multiple instances simultaneo
  - Pasting to clipboard for easier user management in spreadsheets
  - SOCKS Proxy support for remote work:
  ![App feature 2](assets/app_feature_proxy.png)
- - Option to limit user amount that is shown to operator to optimize loading times:
+ - Option to limit user amount that is shown to operator to optimize load times:
  ![App feature 3](assets/app_feature_limit_users.png)
  - Data is stored on LAN server and is syncronized between all app operators:
  ![App feature 4](assets/app_feature_updates.png)
- - Randomized passwords for users
+ - Randomized passwords for new accounts
  - Logging actions for debugging
- - Easy Voiso and CommPeak cluster managenment
+ - Easy Voiso and CommPeak cluster management
  - Easy FastPanel instance editing and connecting
- - Ability to manage multiple users in the same time
+ - Ability to manage multiple users at the same time
  - Ability to manage multiple emails of the single user
  - Easy creation and management of labels for quick email group selection
  - Automatic renewal of login sessions for all connected FastPanels
@@ -43,7 +43,7 @@ Allows for easy search and editing of the emails and users
 This page also allows editing passwords of and removing email accounts.
 ![User Editing](assets/app_section_emails_edit.png)
 
-Operator can also create multiple users on multiple domains in the same time using this app.
+Operator can also create multiple users on multiple domains at the same time using this app.
 ![User Creation](assets/app_section_emails_create.png)
 
 ###### Servers page
