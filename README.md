@@ -72,7 +72,10 @@ This page shows Voiso and CP clusters with their respectful balances.
 You can also add new and edit existing clusters here.
  ![Clusters Add](assets/app_section_clusters_add.png)
 
-
+###### HLR page
+You can check number availability/validity using CommPeak and [REDACTED] API.
+ ![HLR Page](assets/app_section_hlr.png)
+ 
 ###### CDR page
 This page shows Call Detail Records, allowing period selection and differentiating between clusters.
- ![HLR Page](assets/app_section_cdr.png)
+ ![CDR Page](assets/app_section_cdr.png)
