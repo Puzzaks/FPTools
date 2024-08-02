@@ -18,7 +18,7 @@ Application that leverages FastPanel API to manage multiple instances simultaneo
  ![App feature 2](assets/app_feature_proxy.png)
  - Option to limit user amount that is shown to operator to optimize load times:
  ![App feature 3](assets/app_feature_limit_users.png)
- - Data is stored on LAN server and is syncronized between all app operators:
+ - Data is stored on LAN server and is synchronized between all app operators:
  ![App feature 4](assets/app_feature_updates.png)
  - Randomized passwords for new accounts
  - Logging actions for debugging
